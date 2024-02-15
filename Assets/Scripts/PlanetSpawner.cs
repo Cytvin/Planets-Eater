@@ -21,12 +21,15 @@ public class PlanetSpawner : MonoBehaviour
     [SerializeField]
     private int _maxConnection;
 
-    private Vector3 _ringCenter = new Vector3(0, 0, 0);
+    private float _deltaO;
+    private float _currentO = 0;
+
     private List<Planet> _planets = new List<Planet>();
     private Dictionary<Planet, List<Planet>> _map;
 
     public void Start()
     {
+        _deltaO = (2 * Mathf.PI) / _planetCount;
         SpawnPlanet();
         //_map = CreateMap(_planets, _maxDistanceToConnect);
         ConnectPlanets();
@@ -34,11 +37,12 @@ public class PlanetSpawner : MonoBehaviour
 
     public void SpawnPlanet()
     {
-        for(int i = 0; i < _planetCount; i++)
+        for (int i = 0; i < _planetCount; i++)
         {
             Vector3 planetPosition = GeneratePlanetCoordinate();
 
             Planet newPlanet = Instantiate(_planetsPrefab, planetPosition, Quaternion.identity).GetComponent<Planet>();
+            newPlanet.name = $"Planet {i + 1}";
             _planets.Add(newPlanet);
         }
     }
@@ -46,37 +50,41 @@ public class PlanetSpawner : MonoBehaviour
     private Vector3 GeneratePlanetCoordinate()
     {
         Vector3 coordinate = new Vector3();
-        bool isFarEnough;
 
-        int tryCounter = 0;
-        float bestTryDistance = 0;
+        bool isFarEnough = true;
+
+        _currentO += _deltaO;
+        int tryCount = 0;
 
         do
         {
-            float angle = 2 * Mathf.PI * Random.Range(0.0f, 1.0f);
             float radius = Random.Range(_innerRadius, _outerRadius);
 
-            float x = _ringCenter.x + radius * Mathf.Cos(angle);
-            float z = _ringCenter.z + radius * Mathf.Sin(angle);
+            float x = radius * Mathf.Cos(_currentO);
+            float z = radius * Mathf.Sin(_currentO);
 
             coordinate.x = x;
             coordinate.y = 1;
             coordinate.z = z;
-            isFarEnough = true;
+
             foreach(Planet planet in _planets)
             {
-                float dx = planet.Coordinate.x - coordinate.x;
-                float dz = planet.Coordinate.z - coordinate.z;
+                float distance = Vector3.Distance(planet.Coordinate, coordinate);
 
-                if (Mathf.Sqrt(dx * dx + dz * dz) < _minDistance)
+                if (distance < _minDistance)
                 {
                     isFarEnough = false;
                     break;
                 }
+                else
+                {
+                    isFarEnough = true;
+                }
             }
-            tryCounter++;
+
+            tryCount++;
         }
-        while (!isFarEnough && tryCounter < 100);
+        while (isFarEnough == false && tryCount < 100);
 
         return coordinate;
     }
@@ -138,6 +146,8 @@ public class PlanetSpawner : MonoBehaviour
                 {
                     PlanetConnector connector1 = Instantiate(_planetConnector, planet.transform);
                     connector1.Init(planet.Coordinate, collider.transform.position);
+
+                    //planet.AddNearPlanet(collider.gameObject.GetComponent<Planet>());
                 }
             }
         }
