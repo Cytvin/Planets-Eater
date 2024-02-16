@@ -7,7 +7,7 @@ public class PlanetSpawner : MonoBehaviour
     [SerializeField]
     private GameObject _planetsPrefab;
     [SerializeField]
-    private PlanetConnector _planetConnector;
+    private PlanetConnector _planetConnectorPrefab;
     [SerializeField]
     private int _planetCount;
     [SerializeField]
@@ -25,13 +25,12 @@ public class PlanetSpawner : MonoBehaviour
     private float _currentO = 0;
 
     private List<Planet> _planets = new List<Planet>();
-    private Dictionary<Planet, List<Planet>> _map;
+    private List<PlanetConnector> _connectors = new List<PlanetConnector>();
 
     public void Start()
     {
         _deltaO = (2 * Mathf.PI) / _planetCount;
         SpawnPlanet();
-        //_map = CreateMap(_planets, _maxDistanceToConnect);
         ConnectPlanets();
     }
 
@@ -89,41 +88,6 @@ public class PlanetSpawner : MonoBehaviour
         return coordinate;
     }
 
-    public Dictionary<Planet, List<Planet>> CreateMap(List<Planet> planets, int maxDistance)
-    {
-        Dictionary<Planet, List<Planet>> map = new Dictionary<Planet, List<Planet>>();
-
-        for (int i = 0; i < planets.Count; i++)
-        {
-            for (int j = i + 1; j < planets.Count; j++)
-            {
-                float dx = planets[j].Coordinate.x - planets[i].Coordinate.x;
-                float dz = planets[j].Coordinate.z - planets[i].Coordinate.z;
-                double distance = Mathf.Sqrt(dx * dx + dz * dz);
-
-                if (distance <= maxDistance)
-                {
-                    if (!map.ContainsKey(planets[i]))
-                    {
-                        map[planets[i]] = new List<Planet>();
-                    }
-                    if (!map.ContainsKey(planets[j]))
-                    {
-                        map[planets[j]] = new List<Planet>();
-                    }
-
-                    PlanetConnector connector = Instantiate(_planetConnector, planets[i].transform);
-                    connector.Init(planets[i].Coordinate, planets[j].Coordinate);
-
-                    map[planets[i]].Add(planets[j]);
-                    map[planets[j]].Add(planets[i]);
-                }
-            }
-        }
-
-        return map;
-    }
-
     private void ConnectPlanets()
     {
         foreach (Planet planet in _planets)
@@ -132,25 +96,62 @@ public class PlanetSpawner : MonoBehaviour
 
             foreach (Collider collider in nearPlanets) 
             {
-                if (planet.transform.childCount == _maxConnection)
-                {
-                    break;
-                }
-
                 RaycastHit hit;
                 Vector3 rayDirection = collider.transform.position - planet.Coordinate;
 
                 Physics.Raycast(planet.Coordinate, rayDirection, out hit);
 
-                if (hit.collider == collider && !collider.CompareTag("GalaxyCenter"))
+                if (hit.collider == collider && !collider.CompareTag("GalaxyCenter") && IntersectCheck(planet.Coordinate, collider.transform.position) == false)
                 {
-                    PlanetConnector connector1 = Instantiate(_planetConnector, planet.transform);
-                    connector1.Init(planet.Coordinate, collider.transform.position);
+                    Planet otherPlanet = collider.gameObject.GetComponent<Planet>();
 
-                    //planet.AddNearPlanet(collider.gameObject.GetComponent<Planet>());
+                    if (!otherPlanet.IsConnect(planet))
+                    {
+                        PlanetConnector connector = Instantiate(_planetConnectorPrefab, planet.transform);
+                        connector.Connect(planet, otherPlanet);
+                        _connectors.Add(connector);
+                    }  
                 }
             }
         }
+    }
+
+    private bool IntersectCheck(Vector3 start, Vector3 end)
+    {
+        bool intersect = false;
+
+        foreach(PlanetConnector connector in _connectors)
+        {
+            intersect = CheckBoundingBox(start.x, end.x, connector.Start.x, connector.End.x)
+                    && CheckBoundingBox(start.z, end.z, connector.Start.z, connector.End.z)
+                    && Area(start, end, connector.Start) * Area(start, end, connector.End) <= 0
+                    && Area(connector.Start, connector.End, start) * Area(connector.Start, connector.End, end) <= 0;
+
+            if (intersect)
+            {
+                return intersect;
+            }
+        }
+
+        return intersect;
+    }
+
+    private bool CheckBoundingBox(float a, float b, float c, float d)
+    {
+        if (a > b)
+        {
+            (a, b) = (b, a);
+        }
+        if (c > d)
+        {
+            (c, d) = (d, c);
+        }
+        return Mathf.Max(a, c) <= Mathf.Min(b, d);
+    }
+
+    private float Area(Vector3 a, Vector3 b, Vector3 c)
+    {
+        return (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
     }
 
     private Collider[] FindNearPlanet(Planet planet, int count)

@@ -565,7 +565,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _planetsPrefab: {fileID: 2054076307486140282, guid: 18e307df75381014faa828aa2227e5fa, type: 3}
-  _planetConnector: {fileID: -8798620494073132813, guid: 0de8805b4cc99ba4dbaa525ffe531ea9, type: 3}
+  _planetConnectorPrefab: {fileID: -8798620494073132813, guid: 0de8805b4cc99ba4dbaa525ffe531ea9, type: 3}
   _planetCount: 100
   _innerRadius: 50
   _outerRadius: 115
