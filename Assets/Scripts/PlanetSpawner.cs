@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 
 public class PlanetSpawner : MonoBehaviour
@@ -42,6 +43,11 @@ public class PlanetSpawner : MonoBehaviour
 
             Planet newPlanet = Instantiate(_planetsPrefab, planetPosition, Quaternion.identity).GetComponent<Planet>();
             newPlanet.name = $"Planet {i + 1}";
+
+            TextMeshProUGUI shipCountText = newPlanet.GetComponentInChildren<TextMeshProUGUI>();
+            PlanetView planetView = new PlanetView(shipCountText);
+            PlanetPresenter planetPresenter = new PlanetPresenter(newPlanet, planetView);
+
             _planets.Add(newPlanet);
         }
     }
@@ -105,12 +111,12 @@ public class PlanetSpawner : MonoBehaviour
                 {
                     Planet otherPlanet = collider.gameObject.GetComponent<Planet>();
 
-                    if (!otherPlanet.IsConnect(planet))
-                    {
-                        PlanetConnector connector = Instantiate(_planetConnectorPrefab, planet.transform);
-                        connector.Connect(planet, otherPlanet);
-                        _connectors.Add(connector);
-                    }  
+                    //if (!otherPlanet.IsConnect(planet))
+                    //{
+                    //    PlanetConnector connector = Instantiate(_planetConnectorPrefab, planet.transform);
+                    //    connector.Connect(planet, otherPlanet);
+                    //    _connectors.Add(connector);
+                    //}  
                 }
             }
         }

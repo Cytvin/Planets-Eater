@@ -26,10 +26,10 @@ public class PlanetConnector : MonoBehaviour
         _planetA = planetFrom;
         _planetB = PlanetTo;
 
-        _planetA.AddConnector(this);
-        _planetB.AddConnector(this);
-        _planetA.Connect(_planetB);
-        _planetB.Connect(_planetA);
+        //_planetA.AddConnector(this);
+        //_planetB.AddConnector(this);
+        //_planetA.Connect(_planetB);
+        //_planetB.Connect(_planetA);
 
         SetStartAndEnd(_planetA.Coordinate, _planetB.Coordinate);
     }
