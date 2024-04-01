@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class ShipsTransferer : MonoBehaviour
+public class PlanetSelector : MonoBehaviour
 {
     private Planet _from;
     private Planet _to;
@@ -18,7 +18,7 @@ public class ShipsTransferer : MonoBehaviour
 
             if (_from == null)
             {
-                if (pickedPlanet.Owner != Owner.None) //Для теста, чтобы проверять поведение кораблей. Потом поменять на == Owner.Player
+                if (pickedPlanet.Owner != null) //Для теста, чтобы проверять поведение кораблей. Потом поменять на == Owner.Player
                 {
                     _from = pickedPlanet;
                 }

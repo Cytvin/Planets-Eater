@@ -11,40 +11,30 @@ public class Planet : MonoBehaviour
     [SerializeField]
     private float _productionRate = 0.1f;
     [SerializeField]
-    private Color _freedomColor = Color.gray;
-    [SerializeField]
-    private Color _playerColor = Color.blue;
-    [SerializeField]
-    private Color _enemyColor = Color.red;
-    [SerializeField]
-    private Owner _owner;
-    private List<Ship> _ships = new List<Ship>();
+    private Player _owner;
     [SerializeField]
     private int _shipCount;
+    private List<Ship> _ships = new List<Ship>();
+    private float _radius;
+    private int _shipIndex = 0;
 
     public event Action<int> ShipsCountChanged;
     public Vector3 Coordinate => transform.position;
-    public Owner Owner => _owner;
+    public Player Owner => _owner;
     public int ShipCount => _shipCount;
+    public float Radius => _radius;
 
-
-    private void Awake()
+    public void Init(Player owner)
     {
+        _owner = owner;
         Material material = GetComponent<MeshRenderer>().material;
-        if (_owner == Owner.None)
+        if (_owner != null)
         {
-            material.color = _freedomColor;
-        }
-        else if (_owner == Owner.Player)
-        {
-            material.color = _playerColor;
+            material.color = _owner.Color;
             StartCoroutine(CreatingShips());
         }
-        else
-        {
-            material.color = _enemyColor;
-            StartCoroutine(CreatingShips());
-        }
+
+        _radius = transform.localScale.x / 2;
     }
 
     public void SendAllShipsTo(Planet planet)
@@ -55,11 +45,25 @@ public class Planet : MonoBehaviour
         }
     }
 
-    private void PlanetCaptured(Owner owner)
+    public void TakeForLanding(Ship ship)
+    {
+        _shipCount--;
+        ShipsCountChanged?.Invoke(_shipCount);
+        _ships.Remove(ship);
+
+        if (_shipCount <= 0)
+        {
+            PlanetCaptured(ship.Owner);
+            _shipCount = _ships.Count;
+            ShipsCountChanged?.Invoke(_shipCount);
+        }
+    }
+
+    private void PlanetCaptured(Player owner)
     {
         _owner = owner;
         Material material = GetComponent<MeshRenderer>().material;
-        material.color = _playerColor;
+        material.color = owner.Color;
         StartCoroutine(CreatingShips());
     }
 
@@ -84,6 +88,7 @@ public class Planet : MonoBehaviour
     {
         Ship ship = Instantiate(_shipPrefab, transform.position, _shipPrefab.transform.rotation);
         ship.Init(this, _owner);
+        ship.gameObject.name = $"Ship {_shipIndex++} from {gameObject.name}";
         return ship;
     }
 
@@ -102,18 +107,9 @@ public class Planet : MonoBehaviour
                 _shipCount++;
                 ShipsCountChanged?.Invoke(_shipCount);
             }
-            else if (_owner == Owner.None)
+            else if (_owner == null)
             {
                 _ships.Add(ship);
-                _shipCount--;
-                ShipsCountChanged?.Invoke(_shipCount);
-
-                if (_shipCount <= 0)
-                {
-                    PlanetCaptured(ship.Owner);
-                    _shipCount = _ships.Count;
-                    ShipsCountChanged?.Invoke(_shipCount);
-                }
             }
         }
     }
