@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -29,6 +28,12 @@ public class Ship : MonoBehaviour
     private float _searchRadius = 15f;
     private Ship _currentEnemy;
 
+    private float _health = 10f;
+    private float _damage = 2f;
+
+    private float _timeToAttack = 0.5f;
+    private float _timeFromLastAttack = 0f;
+
     public ShipState State => _state;
     public Player Owner => _owner;
     public Planet TargetPlanet => _currentPlanet;
@@ -55,7 +60,7 @@ public class Ship : MonoBehaviour
                 _justCreated = false;
             }
 
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) >= _holdingRadius)
+            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) >= _holdingRadius) //ѕодумать о другом переходе в состо€ние Holding, чтобы кораль мог раньше начать воевать
             {
                 _agent.enabled = true;
                 _collider.enabled = true;
@@ -77,6 +82,14 @@ public class Ship : MonoBehaviour
         }
         else if (_state == ShipState.Fly)
         {
+            _currentEnemy = SearchEnemy();
+
+            if (_currentEnemy != null) 
+            {
+                _state = ShipState.Fight;
+                return;
+            }
+
             if (Vector3.Distance(transform.position, _currentPlanet.transform.position) > _holdingRadius)
             {
                 return;
@@ -104,7 +117,7 @@ public class Ship : MonoBehaviour
                 _state = ShipState.Holding;
                 return;
             }
-            else if (_currentPlanet.Owner != _owner && _currentPlanet.Owner != null)
+            else if (_currentPlanet.Owner != _owner && _currentPlanet.Owner != null && SearchEnemy() != null) //ќшибка в изменении состо€ни€, нужно как-то провер€ть что на планете не осталось кораблей или делать Enum с состо€нием планет
             {
                 _agent.enabled = true;
                 _state = ShipState.Fight;
@@ -137,12 +150,22 @@ public class Ship : MonoBehaviour
             else if (_currentEnemy == null && _currentPlanet.Owner != _owner)
             {
                 _state = ShipState.Landing;
+                _agent.enabled = false;
                 return;
             }
 
             Vector3 targetPosition = _currentEnemy.transform.position;
 
             _agent.SetDestination(targetPosition);
+            
+            //TODO: Ќужно сделать атаку с учетом радиуса атаки, чтобы юниты не атаковали через пол карты
+            if (_timeFromLastAttack > _timeToAttack)
+            {
+                _currentEnemy.ApplyDamage(_damage);
+                _timeFromLastAttack = 0;
+            }
+
+            _timeFromLastAttack += Time.deltaTime;
         }
     }
 
@@ -150,7 +173,29 @@ public class Ship : MonoBehaviour
     {
         _state = ShipState.Fly;
         _currentPlanet = planet;
+        _agent.enabled = true;
         _agent.SetDestination(_currentPlanet.transform.position);
+    }
+
+    public void DefendPlanet()
+    {
+        _state = ShipState.Fight;
+    }
+
+    public void ApplyDamage(float damage)
+    {
+        if (damage < 0)
+        {
+            return;
+        }
+
+        _health -= damage;
+
+        if (_health <= 0)
+        {
+            Destroy(gameObject);
+            Destroy(this);
+        }
     }
 
     private Ship SearchEnemy()
@@ -164,7 +209,7 @@ public class Ship : MonoBehaviour
 
         foreach (Collider collider in searchResult)
         {
-            if (collider.TryGetComponent<Ship>(out Ship ship) && ship.TargetPlanet == _currentPlanet && ship != this)
+            if (collider.TryGetComponent<Ship>(out Ship ship) && ship.TargetPlanet == _currentPlanet && ship != this && ship.Owner != _owner)
             {
                 float distance = Vector3.Distance(currentPosition, ship.transform.position);
 
