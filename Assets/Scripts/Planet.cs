@@ -17,9 +17,10 @@ public class Planet : MonoBehaviour
     [SerializeField]
     private Player _owner;
     [SerializeField]
-    private int _shipCount;
+    private int _shipForCaptured;
     [SerializeField]
     private PlanetState _state;
+    private int _maxShip = 50;
     private List<Ship> _ships = new List<Ship>();
     private List<Ship> _enemyShips = new List<Ship>();
     private float _radius;
@@ -33,8 +34,10 @@ public class Planet : MonoBehaviour
     public event Action<int> ShipsCountChanged;
     public Vector3 Coordinate => transform.position;
     public Player Owner => _owner;
-    public int ShipCount => _shipCount;
+    public int ShipCount => _ships.Count;
+    public int MaxShip => _maxShip;
     public float Radius => _radius;
+    public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
 
     public void Init(Player owner)
@@ -48,6 +51,7 @@ public class Planet : MonoBehaviour
         }
 
         _radius = transform.localScale.x / 2;
+        ShipsCountChanged?.Invoke(_shipForCaptured);
     }
 
     private void Update()
@@ -55,7 +59,7 @@ public class Planet : MonoBehaviour
         if (_state != PlanetState.NotCaptured) 
         {
             SearchShips();
-            ShipsCountChanged?.Invoke(_shipCount);
+            ShipsCountChanged?.Invoke(_ships.Count);
 
             if (_enemyShips.Count > 0)
             {
@@ -70,7 +74,7 @@ public class Planet : MonoBehaviour
         if (_state == PlanetState.Captured)
         {
             _timeFromLastShipProducted += Time.deltaTime;
-            if (_timeFromLastShipProducted > _timeToNewShipProducted)
+            if (_timeFromLastShipProducted > _timeToNewShipProducted && _ships.Count < _maxShip)
             {
                 CreateShip();
                 _timeFromLastShipProducted = 0;
@@ -95,21 +99,27 @@ public class Planet : MonoBehaviour
 
     public void TakeForLanding(Ship ship)
     {
-        _shipCount--;
-        ShipsCountChanged?.Invoke(_shipCount);
-        _ships.Remove(ship);
+        if (_state == PlanetState.NotCaptured)
+        {
+            _shipForCaptured--;
+            ShipsCountChanged?.Invoke(_shipForCaptured);
 
-        if (_shipCount <= 0)
+            if (_shipForCaptured <= 0)
+            {
+                PlanetCaptured(ship.Owner);
+            }
+            return;
+        }
+
+        if (_ships.Count <= 0)
         {
             PlanetCaptured(ship.Owner);
-            _shipCount = _ships.Count;
-            ShipsCountChanged?.Invoke(_shipCount);
+            ShipsCountChanged?.Invoke(_ships.Count);
         }
     }
 
     public void SearchShips()
     {
-        _shipCount = 0;
         _ships.Clear();
         _enemyShips.Clear();
         Collider[] searchResult = Physics.OverlapSphere(transform.position, _searchRadius);
@@ -121,7 +131,6 @@ public class Planet : MonoBehaviour
                 if (ship.Owner == _owner)
                 {
                     _ships.Add(ship);
-                    _shipCount++;
                 }
                 else
                 {
@@ -145,5 +154,11 @@ public class Planet : MonoBehaviour
         ship.Init(this, _owner);
         ship.gameObject.name = $"Ship {_shipIndex++} from {gameObject.name}";
         return ship;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, _searchRadius);
     }
 }

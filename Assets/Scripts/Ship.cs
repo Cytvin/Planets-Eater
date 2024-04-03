@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -31,8 +32,12 @@ public class Ship : MonoBehaviour
     private float _health = 10f;
     private float _damage = 2f;
 
-    private float _timeToAttack = 0.5f;
+    private float _timeToAttack = 3f;
     private float _timeFromLastAttack = 0f;
+    private float _attackRange = 4f;
+
+    [SerializeField]
+    private LineRenderer _laser;
 
     public ShipState State => _state;
     public Player Owner => _owner;
@@ -42,6 +47,7 @@ public class Ship : MonoBehaviour
     {
         _state = ShipState.Takeoff;
         _owner = owner;
+        _laser.material.color = owner.Color;
         _currentPlanet = currentPlanet;
     }
 
@@ -56,11 +62,11 @@ public class Ship : MonoBehaviour
 
                 _angle = transform.rotation.eulerAngles.y * Mathf.Deg2Rad;
 
-                _holdingRadius = Random.Range(4f, 8f);
+                _holdingRadius = Random.Range(4f, 7f);
                 _justCreated = false;
             }
 
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) >= _holdingRadius) //Подумать о другом переходе в состояние Holding, чтобы кораль мог раньше начать воевать
+            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) >= _currentPlanet.Radius) //Подумать о другом переходе в состояние Holding, чтобы кораль мог раньше начать воевать
             {
                 _agent.enabled = true;
                 _collider.enabled = true;
@@ -82,7 +88,10 @@ public class Ship : MonoBehaviour
         }
         else if (_state == ShipState.Fly)
         {
-            _currentEnemy = SearchEnemy();
+            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) < _currentPlanet.SearchRadius)
+            {
+                _currentEnemy = SearchEnemy();
+            }
 
             if (_currentEnemy != null) 
             {
@@ -117,7 +126,7 @@ public class Ship : MonoBehaviour
                 _state = ShipState.Holding;
                 return;
             }
-            else if (_currentPlanet.Owner != _owner && _currentPlanet.Owner != null && SearchEnemy() != null) //Ошибка в изменении состояния, нужно как-то проверять что на планете не осталось кораблей или делать Enum с состоянием планет
+            else if (_currentPlanet.Owner != _owner && _currentPlanet.Owner != null && SearchEnemy() != null)
             {
                 _agent.enabled = true;
                 _state = ShipState.Fight;
@@ -155,17 +164,28 @@ public class Ship : MonoBehaviour
             }
 
             Vector3 targetPosition = _currentEnemy.transform.position;
+            float distanceToEnemy = Vector3.Distance(transform.position, targetPosition);
 
-            _agent.SetDestination(targetPosition);
-            
-            //TODO: Нужно сделать атаку с учетом радиуса атаки, чтобы юниты не атаковали через пол карты
-            if (_timeFromLastAttack > _timeToAttack)
+            if (distanceToEnemy > _attackRange) 
             {
-                _currentEnemy.ApplyDamage(_damage);
-                _timeFromLastAttack = 0;
+                _agent.SetDestination(targetPosition);
+            }
+            else
+            {
+                _agent.SetDestination(transform.position);
             }
 
             _timeFromLastAttack += Time.deltaTime;
+
+            if (_timeFromLastAttack > _timeToAttack && distanceToEnemy <= _attackRange)
+            {
+                _currentEnemy.ApplyDamage(_damage);
+                _timeFromLastAttack = 0;
+                _laser.positionCount = 2;
+                _laser.SetPosition(0, transform.position);
+                _laser.SetPosition(1, targetPosition);
+                StartCoroutine(RefreshLaser());
+            }
         }
     }
 
@@ -224,9 +244,17 @@ public class Ship : MonoBehaviour
         return enemy;
     }
 
+    private IEnumerator RefreshLaser()
+    {
+        yield return new WaitForSeconds(1f);
+        _laser.positionCount = 0;
+    }
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, _searchRadius);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position, _attackRange);
     }
 }
