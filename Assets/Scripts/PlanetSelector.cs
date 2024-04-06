@@ -63,6 +63,18 @@ public class PlanetSelector : MonoBehaviour
             return;
         }
 
-        from.SendAllShipsTo(to);
+        int shipAmount;
+
+        if (from.Owner == to.Owner)
+        {
+            shipAmount = Mathf.Min(to.MaxOwnerShipToReceive, from.MaxShipToSend);
+        }
+        else
+        {
+            shipAmount = Mathf.Min(to.GetMaxEnemyShipToReceive(from.Owner), from.MaxShipToSend);
+        }
+
+        Debug.Log($"Будет отправлено {shipAmount} кораблей");
+        from.SendShipsByAmount(to, shipAmount);
     }
 }

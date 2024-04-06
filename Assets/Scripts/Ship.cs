@@ -39,6 +39,8 @@ public class Ship : MonoBehaviour
     [SerializeField]
     private LineRenderer _laser;
 
+    public event System.Action<Ship> Dead;
+
     public ShipState State => _state;
     public Player Owner => _owner;
     public Planet TargetPlanet => _currentPlanet;
@@ -66,7 +68,7 @@ public class Ship : MonoBehaviour
                 _justCreated = false;
             }
 
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) >= _currentPlanet.Radius) //Подумать о другом переходе в состояние Holding, чтобы кораль мог раньше начать воевать
+            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) >= _currentPlanet.Radius)
             {
                 _agent.enabled = true;
                 _collider.enabled = true;
@@ -137,6 +139,7 @@ public class Ship : MonoBehaviour
             {
                 _currentPlanet.TakeForLanding(this);
                 Destroy(gameObject);
+                Destroy(this);
             }
             else
             {
@@ -189,12 +192,19 @@ public class Ship : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        Dead?.Invoke(this);
+    }
+
     public void FlyToPlanet(Planet planet)
     {
         _state = ShipState.Fly;
         _currentPlanet = planet;
         _agent.enabled = true;
         _agent.SetDestination(_currentPlanet.transform.position);
+
+        _currentPlanet.AddShip(this); //TODO: Нужно будет подумать, куда лучше переместить этот метод, чтобы не было такой связанности
     }
 
     public void DefendPlanet()

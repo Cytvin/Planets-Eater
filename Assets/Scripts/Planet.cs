@@ -31,14 +31,20 @@ public class Planet : MonoBehaviour
     [SerializeField]
     private float _timeToNewShipProducted = 1f;
 
+    private int _ownerShipsCountNear;
+    private int _enemyShipsCountNear;
+
     public event Action<int> ShipsCountChanged;
     public Vector3 Coordinate => transform.position;
     public Player Owner => _owner;
-    public int ShipCount => _ships.Count;
+    public int ShipCount => _ownerShipsCountNear;
     public int MaxShip => _maxShip;
     public float Radius => _radius;
     public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
+
+    public int MaxShipToSend => _ships.Count(s => s.State == Ship.ShipState.Holding);
+    public int MaxOwnerShipToReceive => _maxShip - _ships.Count;
 
     public void Init(Player owner)
     {
@@ -58,10 +64,11 @@ public class Planet : MonoBehaviour
     {
         if (_state != PlanetState.NotCaptured) 
         {
-            SearchShips();
-            ShipsCountChanged?.Invoke(_ships.Count);
+            _ownerShipsCountNear = CountNearestShips(_ships);
+            _enemyShipsCountNear = CountNearestShips(_enemyShips);
+            ShipsCountChanged?.Invoke(_ownerShipsCountNear);
 
-            if (_enemyShips.Count > 0)
+            if (_enemyShipsCountNear > 0)
             {
                 _state = PlanetState.UnderSiege;
             }
@@ -76,7 +83,7 @@ public class Planet : MonoBehaviour
             _timeFromLastShipProducted += Time.deltaTime;
             if (_timeFromLastShipProducted > _timeToNewShipProducted && _ships.Count < _maxShip)
             {
-                CreateShip();
+                AddShip(CreateShip());
                 _timeFromLastShipProducted = 0;
             }
         }
@@ -89,11 +96,24 @@ public class Planet : MonoBehaviour
         }
     }
 
-    public void SendAllShipsTo(Planet planet)
+    public int GetMaxEnemyShipToReceive(Player enemy)
     {
-        foreach (Ship ship in _ships.Where(s => s.State == Ship.ShipState.Holding))
+        return _maxShip - _enemyShips.Count(s => s.Owner == enemy);
+    }
+
+    public void SendShipsByAmount(Planet planet, int amount)
+    {
+        if (MaxShipToSend < amount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Количество которое пытаются отправить, больче чем количество кораблей доступных к отправке");
+        }
+
+        List<Ship> shipsToSend = _ships.Where(s => s.State == Ship.ShipState.Holding).Take(amount).ToList();
+
+        foreach (Ship ship in shipsToSend)
         {
             ship.FlyToPlanet(planet);
+            RemoveShip(ship);
         }
     }
 
@@ -111,11 +131,54 @@ public class Planet : MonoBehaviour
             return;
         }
 
-        if (_ships.Count <= 0)
+        if (_ownerShipsCountNear <= 0)
         {
             PlanetCaptured(ship.Owner);
             ShipsCountChanged?.Invoke(_ships.Count);
         }
+    }
+
+    public void AddShip(Ship ship)
+    {
+        if (ship.Owner == _owner)
+        {
+            _ships.Add(ship);
+        }
+        else
+        {
+            _enemyShips.Add(ship);
+        }
+
+        ship.Dead += RemoveShip;
+    }
+
+    private void RemoveShip(Ship ship)
+    {
+        if (ship.Owner == _owner)
+        {
+            _ships.Remove(ship);
+        }
+        else
+        {
+            _enemyShips.Remove(ship);
+        }
+
+        ship.Dead -= RemoveShip;
+    }
+
+    private int CountNearestShips(List<Ship> ships)
+    {
+        int nearestShips = 0;
+
+        foreach (Ship ship in ships)
+        {
+            if (Vector3.Distance(transform.position, ship.transform.position) <= _searchRadius)
+            {
+                nearestShips++;
+            }
+        }
+
+        return nearestShips;
     }
 
     public void SearchShips()
@@ -146,6 +209,8 @@ public class Planet : MonoBehaviour
         Material material = GetComponent<MeshRenderer>().material;
         material.color = owner.Color;
         _state = PlanetState.Captured;
+
+        (_ships, _enemyShips) = (_enemyShips, _ships);
     }
 
     private Ship CreateShip()
