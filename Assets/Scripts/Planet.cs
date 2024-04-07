@@ -181,28 +181,6 @@ public class Planet : MonoBehaviour
         return nearestShips;
     }
 
-    public void SearchShips()
-    {
-        _ships.Clear();
-        _enemyShips.Clear();
-        Collider[] searchResult = Physics.OverlapSphere(transform.position, _searchRadius);
-
-        foreach (Collider collider in searchResult)
-        {
-            if (collider.TryGetComponent<Ship>(out Ship ship) && ship.TargetPlanet == this)
-            {
-                if (ship.Owner == _owner)
-                {
-                    _ships.Add(ship);
-                }
-                else
-                {
-                    _enemyShips.Add(ship);
-                }
-            }
-        }
-    }
-
     private void PlanetCaptured(Player owner)
     {
         _owner = owner;
@@ -210,7 +188,7 @@ public class Planet : MonoBehaviour
         material.color = owner.Color;
         _state = PlanetState.Captured;
 
-        (_ships, _enemyShips) = (_enemyShips, _ships);
+        (_ships, _enemyShips) = (_enemyShips.Where(s => s.Owner == owner).ToList(), _ships);
     }
 
     private Ship CreateShip()

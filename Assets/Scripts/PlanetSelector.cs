@@ -1,7 +1,12 @@
 using UnityEngine;
 
+[RequireComponent(typeof(LineRenderer))]
 public class PlanetSelector : MonoBehaviour
 {
+    [SerializeField]
+    private float _maxDistanceBetwenPlanet = 15f;
+    [SerializeField]
+    private LineRenderer _line;
     private Planet _from;
     private Planet _to;
 
@@ -32,11 +37,52 @@ public class PlanetSelector : MonoBehaviour
             }
         }
 
-        if (_from != null && _to != null)
+        if (Input.GetMouseButtonDown(1))
         {
-            Transfer(_from, _to);
-            _from = null;
-            _to = null;
+            Refresh();
+        }
+
+        if (_from != null)
+        {
+            Vector3 startLinePosition = _from.transform.position;
+            Vector3 mousePosition = Input.mousePosition;
+            Ray searchPlanetRay = Camera.main.ScreenPointToRay(mousePosition);
+            mousePosition.z = Camera.main.transform.position.y - 2.5f;
+            Vector3 endLinePosition = Camera.main.ScreenToWorldPoint(mousePosition);
+
+            if (Physics.Raycast(searchPlanetRay, out RaycastHit hit))
+            {
+                if (hit.collider.TryGetComponent<Planet>(out _))
+                {
+                    endLinePosition = hit.transform.position;
+                }
+            }
+
+            _line.positionCount = 2;
+            _line.SetPosition(0, startLinePosition);
+            _line.SetPosition(1, endLinePosition);
+
+            if (Vector3.Distance(startLinePosition, endLinePosition) > _maxDistanceBetwenPlanet)
+            {
+                _line.material.color = Color.red;
+            }
+            else
+            {
+                _line.material.color = Color.blue;
+            }
+
+            if (_to != null)
+            {
+                if (Vector3.Distance(startLinePosition, _to.transform.position) > _maxDistanceBetwenPlanet)
+                {
+                    Debug.Log("–ассто€ние между планетами больше максимального");
+                    Refresh();
+                    return;
+                }
+
+                Transfer(_from, _to);
+                Refresh();
+            }
         }
     }
 
@@ -53,6 +99,14 @@ public class PlanetSelector : MonoBehaviour
         }
 
         return null;
+    }
+
+    private void Refresh()
+    {
+        _from = null;
+        _to = null;
+
+        _line.positionCount = 0;
     }
 
     private void Transfer(Planet from, Planet to)
