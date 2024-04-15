@@ -10,6 +10,9 @@ public class PlanetSelector : MonoBehaviour
     private Planet _from;
     private Planet _to;
 
+    public event System.Action<Planet> PlanetSelected;
+    public event System.Action<Planet> PlanetDeselected;
+
     private void Update()
     {
         if (Input.GetMouseButtonDown(0))
@@ -26,6 +29,7 @@ public class PlanetSelector : MonoBehaviour
                 if (pickedPlanet.Owner != null) //Для теста, чтобы проверять поведение кораблей. Потом поменять на == Owner.Player
                 {
                     _from = pickedPlanet;
+                    PlanetSelected?.Invoke(_from);
                 }
             }
             else
@@ -103,6 +107,7 @@ public class PlanetSelector : MonoBehaviour
 
     private void Refresh()
     {
+        PlanetDeselected?.Invoke(_from);
         _from = null;
         _to = null;
 

@@ -45,12 +45,13 @@ public class Ship : MonoBehaviour
     public Player Owner => _owner;
     public Planet TargetPlanet => _currentPlanet;
 
-    public void Init(Planet currentPlanet, Player owner)
+    public void Init(Planet currentPlanet, Player owner, float damge)
     {
         _state = ShipState.Takeoff;
         _owner = owner;
         _laser.material.color = owner.Color;
         _currentPlanet = currentPlanet;
+        _damage = damge;
     }
 
     private void Update()

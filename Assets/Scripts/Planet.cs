@@ -27,12 +27,26 @@ public class Planet : MonoBehaviour
     private int _shipIndex = 0;
     private float _searchRadius = 7.5f;
 
-    private float _timeFromLastShipProducted = 0;
-    [SerializeField]
-    private float _timeToNewShipProducted = 1f;
-
     private int _ownerShipsCountNear;
     private int _enemyShipsCountNear;
+
+    [SerializeField]
+    private float _resourcePerSecond;
+
+    #region Factory
+    private int _factorySpeedLevel = 1;
+    private float _productionTime = 0;
+    [SerializeField]
+    private float _productionDelay = 4f;
+    [SerializeField]
+    private float _productionDelayReduction = 0.25f;
+    public event Action<int> ProductionLevelChanged; 
+
+    private int _shipDamageLevel = 1;
+    private float _shipDamage = 1f;
+    private float _shipDamageGain = 0.2f;
+    public event Action<int> ShipDamageLevelChanged;
+    #endregion
 
     public event Action<int> ShipsCountChanged;
     public Vector3 Coordinate => transform.position;
@@ -42,6 +56,8 @@ public class Planet : MonoBehaviour
     public float Radius => _radius;
     public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
+    public int ProdutionSpeedLevel => _factorySpeedLevel;
+    public int ShipDamageLevel => _shipDamageLevel;
 
     public int MaxShipToSend => _ships.Count(s => s.State == Ship.ShipState.Holding);
     public int MaxOwnerShipToReceive => _maxShip - _ships.Count;
@@ -80,12 +96,15 @@ public class Planet : MonoBehaviour
 
         if (_state == PlanetState.Captured)
         {
-            _timeFromLastShipProducted += Time.deltaTime;
-            if (_timeFromLastShipProducted > _timeToNewShipProducted && _ships.Count < _maxShip)
+            _productionTime += Time.deltaTime;
+            if (_productionTime > _productionDelay && _ships.Count < _maxShip)
             {
                 AddShip(CreateShip());
-                _timeFromLastShipProducted = 0;
+                _productionTime = 0;
             }
+
+            float currentResourceCount = _resourcePerSecond * Time.deltaTime;
+            _owner.AddResource(currentResourceCount);
         }
         else if (_state == PlanetState.UnderSiege)
         {
@@ -152,6 +171,20 @@ public class Planet : MonoBehaviour
         ship.Dead += RemoveShip;
     }
 
+    public void UpgradeFactorySpeed()
+    {
+        _factorySpeedLevel++;
+        _productionDelay -= _productionDelayReduction;
+        ProductionLevelChanged?.Invoke(_factorySpeedLevel);
+    }
+
+    public void UpgradeShipDamage()
+    {
+        _shipDamageLevel++;
+        _shipDamage += _shipDamageGain;
+        ShipDamageLevelChanged?.Invoke(_shipDamageLevel);
+    }
+
     private void RemoveShip(Ship ship)
     {
         if (ship.Owner == _owner)
@@ -194,7 +227,7 @@ public class Planet : MonoBehaviour
     private Ship CreateShip()
     {
         Ship ship = Instantiate(_shipPrefab, transform.position, _shipPrefab.transform.rotation);
-        ship.Init(this, _owner);
+        ship.Init(this, _owner, _shipDamage);
         ship.gameObject.name = $"Ship {_shipIndex++} from {gameObject.name}";
         return ship;
     }
