@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4138ce9f708a644fbad8807bace02c9, type: 3}
+  m_Name: MapGeneratorRules
+  m_EditorClassIdentifier: 
+  MaxPlanet: 10
+  BigPlanetCount: 2
+  MiddlePlanetCount: 4
+  LittlePlanetCount: 4
+  BigPlanetSize: 8
+  MiddlePlanetSize: 5
+  LittlePlanetSize: 3
+  BigPlanetMaxShip: 75
+  MiddlePlanetMaxShip: 50
+  LittlePlanetMaxShip: 25
+  BigPlanetMinShipToCaptured: 30
+  BigPlanetMaxShipToCaptured: 50
+  MiddlePlanetMinShipToCaptured: 15
+  MiddlePlanetMaxShipToCaptured: 25
+  LittlePlanetMinShipToCaptured: 5
+  LittlePlanetMaxShipToCaptured: 10
+  BigPlanetResourcePerSecondProduction: 5
+  MiddlePlanetResourcePerSecondProduction: 3
+  LittlePlanetResourcePerSecondProduction: 1
+  MinDistanceBetweenPlanet: 24
+  MaxDistanceBetweenPlanet: 30
+  MapHeight: 27.5
+  MapWidth: 49
+  PlanetPrefabs:
+  - {fileID: 1345651076695995216, guid: 642454a265967e1468360a08fc66db60, type: 3}
+  - {fileID: 6818884641722200439, guid: 7ded786f373b83b47b63f3a92f180f4b, type: 3}
+  - {fileID: 4838046245139736764, guid: 5d96a9eefbf88da4cb50cebe1010aecb, type: 3}
+  - {fileID: 6414095112311763630, guid: adbafec9bf4892d44b3594c1e5d65537, type: 3}
+  - {fileID: 5013454637359159159, guid: e7f1cdee8e4a6f24bb3204fd12e38315, type: 3}
+  - {fileID: 4381472403175285050, guid: b9049dd74bfbc314788b507ed5a2ef2a, type: 3}
+  - {fileID: 4279440348758284192, guid: eae9621b053642946945a85587e01aa8, type: 3}
+  - {fileID: 140994588495217078, guid: 25c78cc21647c23429386a333518e7ea, type: 3}
+  - {fileID: 5719030150831080555, guid: a48c2542b136ba244ae112f8fb20d356, type: 3}
+  - {fileID: 5251406827822045083, guid: 19835273963b43d46828cf3e32897744, type: 3}
+  PlanetView: {fileID: 36250427530300032, guid: 21ccddbc86b09c24fa38599353be2418, type: 3}
+  ShipPrefab: {fileID: 4297052395131509581, guid: 82876c1887d7caf4381040b979645952, type: 3}

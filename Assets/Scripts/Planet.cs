@@ -17,7 +17,7 @@ public class Planet : MonoBehaviour
     [SerializeField]
     private Player _owner;
     [SerializeField]
-    private int _shipForCaptured;
+    private int _shipToCaptured;
     [SerializeField]
     private PlanetState _state;
     private int _maxShip = 50;
@@ -25,7 +25,7 @@ public class Planet : MonoBehaviour
     private List<Ship> _enemyShips = new List<Ship>();
     private float _radius;
     private int _shipIndex = 0;
-    private float _searchRadius = 7.5f;
+    private float _searchRadius = 0;
 
     private int _ownerShipsCountNear;
     private int _enemyShipsCountNear;
@@ -34,46 +34,73 @@ public class Planet : MonoBehaviour
     private float _resourcePerSecond;
 
     #region Factory
-    private int _factorySpeedLevel = 1;
+    private int _productionSpeedLevel = 1;
     private float _productionTime = 0;
     [SerializeField]
     private float _productionDelay = 4f;
     [SerializeField]
     private float _productionDelayReduction = 0.25f;
-    public event Action<int> ProductionLevelChanged; 
+    [SerializeField]
+    private float _productionUpgradeCost = 500;
+    [SerializeField]
+    private float _productionUpgradeCostReduction = 500;
+    public event Action<int, float> ProductionLevelChanged; 
 
     private int _shipDamageLevel = 1;
     private float _shipDamage = 1f;
     private float _shipDamageGain = 0.2f;
-    public event Action<int> ShipDamageLevelChanged;
+    [SerializeField]
+    private float _shipUpgradeCost = 500;
+    [SerializeField]
+    private float _shipUpgradeCostReduction = 500;
+    public event Action<int, float> ShipDamageLevelChanged;
+
+    public int ProdutionSpeedLevel => _productionSpeedLevel;
+    public int ShipDamageLevel => _shipDamageLevel;
+    public float ProductionUpgradeCost => _productionUpgradeCost;
+    public float ShipUpgradeCost => _shipUpgradeCost;
     #endregion
 
     public event Action<int> ShipsCountChanged;
-    public Vector3 Coordinate => transform.position;
+    public int ShipToCaptured => _shipToCaptured;
+    public Vector3 Position => transform.position;
     public Player Owner => _owner;
     public int ShipCount => _ownerShipsCountNear;
     public int MaxShip => _maxShip;
     public float Radius => _radius;
     public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
-    public int ProdutionSpeedLevel => _factorySpeedLevel;
-    public int ShipDamageLevel => _shipDamageLevel;
 
     public int MaxShipToSend => _ships.Count(s => s.State == Ship.ShipState.Holding);
     public int MaxOwnerShipToReceive => _maxShip - _ships.Count;
 
-    public void Init(Player owner)
+    public void Init(Player owner, float resourcePerSecond, int maxShip)
     {
         _owner = owner;
         Material material = GetComponent<MeshRenderer>().material;
-        if (_owner != null)
-        {
-            material.color = _owner.Color;
-            _state = PlanetState.Captured;
-        }
+        material.color = _owner.Color;
+        _state = PlanetState.Captured;
 
         _radius = transform.localScale.x / 2;
-        ShipsCountChanged?.Invoke(_shipForCaptured);
+        _searchRadius = _radius * 3;
+       
+        _resourcePerSecond = resourcePerSecond;
+        _maxShip = maxShip;
+    }
+
+    public void Init(int shipForCaptured, float resourcePerSecond, int maxShip, Ship shipPrefab)
+    {
+        _shipToCaptured = shipForCaptured;
+
+        _radius = transform.localScale.x / 2;
+        _searchRadius = _radius * 3;
+
+        _resourcePerSecond = resourcePerSecond;
+        _maxShip = maxShip;
+
+        _shipPrefab = shipPrefab;
+
+        ShipsCountChanged?.Invoke(_shipToCaptured);
     }
 
     private void Update()
@@ -140,10 +167,10 @@ public class Planet : MonoBehaviour
     {
         if (_state == PlanetState.NotCaptured)
         {
-            _shipForCaptured--;
-            ShipsCountChanged?.Invoke(_shipForCaptured);
+            _shipToCaptured--;
+            ShipsCountChanged?.Invoke(_shipToCaptured);
 
-            if (_shipForCaptured <= 0)
+            if (_shipToCaptured <= 0)
             {
                 PlanetCaptured(ship.Owner);
             }
@@ -171,19 +198,35 @@ public class Planet : MonoBehaviour
         ship.Dead += RemoveShip;
     }
 
-    public void UpgradeFactorySpeed()
+    #region FactoryUpgrade
+    public void UpgradeProductionSpeed()
     {
-        _factorySpeedLevel++;
+        if (!_owner.TryPay(_productionUpgradeCost))
+        {
+            return;
+        }
+
+        _owner.Pay(_productionUpgradeCost);
+        _productionUpgradeCost += _productionUpgradeCostReduction;
+        _productionSpeedLevel++;
         _productionDelay -= _productionDelayReduction;
-        ProductionLevelChanged?.Invoke(_factorySpeedLevel);
+        ProductionLevelChanged?.Invoke(_productionSpeedLevel, _productionUpgradeCost);
     }
 
     public void UpgradeShipDamage()
     {
+        if (!_owner.TryPay(_shipUpgradeCost))
+        {
+            return;
+        }
+
+        _owner.Pay(_shipUpgradeCost);
+        _shipUpgradeCost += _shipUpgradeCostReduction;
         _shipDamageLevel++;
         _shipDamage += _shipDamageGain;
-        ShipDamageLevelChanged?.Invoke(_shipDamageLevel);
+        ShipDamageLevelChanged?.Invoke(_shipDamageLevel, _shipUpgradeCost);
     }
+    #endregion
 
     private void RemoveShip(Ship ship)
     {
@@ -214,8 +257,9 @@ public class Planet : MonoBehaviour
         return nearestShips;
     }
 
-    private void PlanetCaptured(Player owner)
+    public void PlanetCaptured(Player owner)
     {
+        _shipToCaptured = 0;
         _owner = owner;
         Material material = GetComponent<MeshRenderer>().material;
         material.color = owner.Color;

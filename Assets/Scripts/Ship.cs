@@ -65,7 +65,7 @@ public class Ship : MonoBehaviour
 
                 _angle = transform.rotation.eulerAngles.y * Mathf.Deg2Rad;
 
-                _holdingRadius = Random.Range(4f, 7f);
+                _holdingRadius = Random.Range(_currentPlanet.Radius, _currentPlanet.SearchRadius); //TODO: Решить проблему с расчетом радиуса и переместить его в другое место, т.к. он должен перерастчитываться в зависимости от размера планеты
                 _justCreated = false;
             }
 

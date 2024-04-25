@@ -7,7 +7,14 @@ public class PlanetPresenter
     {
         _planet = planet;
         _planetView = planetView;
-        _planetView.SetText(planet.ShipCount.ToString());
+        if (_planet.State == Planet.PlanetState.NotCaptured)
+        {
+            _planetView.SetText(planet.ShipToCaptured.ToString());
+        }
+        else
+        {
+            _planetView.SetText(planet.ShipCount.ToString());
+        }
 
         _planet.ShipsCountChanged += DisplayShipsCount;
     }

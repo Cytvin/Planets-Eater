@@ -6,22 +6,26 @@ using UnityEngine.UI;
 public class PlanetSelectorView : MonoBehaviour
 {
     [SerializeField]
-    private Button _shipDamageUpgradeButton;
+    private Button _shipUpgradeButton;
     [SerializeField]
-    private TextMeshProUGUI _shipDamageLevel;
+    private TextMeshProUGUI _shipUpgradeLevel;
+    [SerializeField]
+    private TextMeshProUGUI _shipUpgradeCost;
     [SerializeField]
     private Button _productionSpeedUpgradeButton;
     [SerializeField]
     private TextMeshProUGUI _productionSpeedLevel;
+    [SerializeField]
+    private TextMeshProUGUI _productionUpgradeCost;
 
     public void Enable()
     {
         gameObject.SetActive(true);
     }
 
-    public void SetDamageUpgradeAction(UnityAction action)
+    public void SetShipUpgradeAction(UnityAction action)
     {
-        _shipDamageUpgradeButton.onClick.AddListener(action);
+        _shipUpgradeButton.onClick.AddListener(action);
     }
 
     public void SetProductionSpeedUpgradeAction(UnityAction action)
@@ -29,20 +33,22 @@ public class PlanetSelectorView : MonoBehaviour
         _productionSpeedUpgradeButton.onClick.AddListener(action);
     }
 
-    public void SetShipDamageLevel(int level)
+    public void SetShipUpgradeInfo(int level, float cost)
     {
-        _shipDamageLevel.SetText(level.ToString());
+        _shipUpgradeLevel.SetText(level.ToString());
+        _shipUpgradeCost.SetText(cost.ToString());
     }
 
-    public void SetProductionSpeedLevel(int level)
+    public void SetProductionSpeedInfo(int level, float cost)
     {
         _productionSpeedLevel.SetText(level.ToString());
+        _productionUpgradeCost.SetText(cost.ToString());
     }
 
     public void Disable()
     {
         gameObject.SetActive(false);
         _productionSpeedUpgradeButton.onClick.RemoveAllListeners();
-        _shipDamageUpgradeButton.onClick.RemoveAllListeners();
+        _shipUpgradeButton.onClick.RemoveAllListeners();
     }
 }

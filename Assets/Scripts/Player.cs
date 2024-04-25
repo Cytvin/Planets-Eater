@@ -24,4 +24,29 @@ public class Player
         _resource += count;
         ResourceCountChanged?.Invoke(_resource);
     }
+
+    public bool TryPay(float cost)
+    {
+        if (cost < 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(cost), "Цена не может быть меньше нуля");
+        }
+
+        if (_resource < cost)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public void Pay(float cost)
+    {
+        if (cost < 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(cost), "Цена не может быть меньше нуля");
+        }
+
+        _resource -= cost;
+    }
 }

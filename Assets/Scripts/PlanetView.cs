@@ -1,12 +1,13 @@
 using TMPro;
+using UnityEngine;
 
-public class PlanetView
+public class PlanetView : MonoBehaviour
 {
+    [SerializeField]
     private TextMeshProUGUI _shipsCountText;
 
-    public PlanetView(TextMeshProUGUI shipsCount)
+    public void Init()
     {
-        _shipsCountText = shipsCount;
         _shipsCountText.SetText("0");
     }
 

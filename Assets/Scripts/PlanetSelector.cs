@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlanetSelector : MonoBehaviour
 {
     [SerializeField]
-    private float _maxDistanceBetwenPlanet = 15f;
+    private float _maxDistanceBetwenPlanet = 25f;
     [SerializeField]
     private LineRenderer _line;
     private Planet _from;
