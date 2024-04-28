@@ -1,191 +1,53 @@
-using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshAgent))]
 public class Ship : MonoBehaviour
 {
-    public enum ShipState
-    {
-        Takeoff,
-        Holding,
-        Fly,
-        Landing,
-        Fight
-    }
-
     [SerializeField]
     private NavMeshAgent _agent;
     [SerializeField]
-    private Collider _collider;
-    [SerializeField]
-    private ShipState _state;
+    private LineRenderer _laser;
+
+    private IShipState _shipState;
     private Player _owner;
     private Planet _currentPlanet;
+    private ShipWeapon _weapon;
     private float _holdingRadius;
     private float _speed = 5f;
-    private float _angle;
     private float _searchRadius = 15f;
-    private Ship _currentEnemy;
-
     private float _health = 10f;
-    private float _damage = 2f;
-
-    private float _timeToAttack = 3f;
-    private float _timeFromLastAttack = 0f;
-    private float _attackRange = 4f;
-
-    [SerializeField]
-    private LineRenderer _laser;
 
     public event System.Action<Ship> Dead;
 
-    public ShipState State => _state;
+    public bool IsHolding => _shipState is HoldingState;
     public Player Owner => _owner;
-    public Planet TargetPlanet => _currentPlanet;
+    public Planet CurrentPlanet => _currentPlanet;
+    public ShipWeapon Weapon => _weapon;
+    public NavMeshAgent Agent => _agent;
+    public float Speed => _speed;
+    public float HoldingRadius => _holdingRadius;
 
-    public void Init(Planet currentPlanet, Player owner, float damge)
+    public void Init(Planet currentPlanet, Player owner, float damage)
     {
-        _state = ShipState.Takeoff;
         _owner = owner;
+
+        _shipState = new TakeOffState();
+        _weapon = new ShipWeapon(this, _laser, damage);
         _laser.material.color = owner.Color;
-        _damage = damge;
 
         Vector3 rotationAngle = new Vector3(0, Random.Range(0.0f, 360.0f), 0);
         transform.Rotate(rotationAngle);
-
-        _angle = transform.rotation.eulerAngles.y * Mathf.Deg2Rad;
 
         ChangeCurrentPlanet(currentPlanet);
     }
 
     private void Update()
     {
-        if (_state == ShipState.Takeoff)
-        {
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) > _currentPlanet.Radius + 1)
-            {
-                _agent.enabled = true;
-                _collider.enabled = true;
-                _state = ShipState.Holding;
-            }
-             
-            transform.Translate(_speed * Time.deltaTime * transform.forward, Space.World);
-        }
-        else if (_state == ShipState.Holding)
-        {
-            _angle += Time.deltaTime;
-
-            float x = Mathf.Cos(_angle * 0.5f) * _holdingRadius;
-            float z = Mathf.Sin(_angle * 0.5f) * _holdingRadius;
-
-            Vector3 nextPoint = new Vector3(x, 0, z) + _currentPlanet.Position;
-
-            _agent.SetDestination(nextPoint);
-        }
-        else if (_state == ShipState.Fly)
-        {
-            if (Vector3.Distance(transform.position, _currentPlanet.Position) < _currentPlanet.SearchRadius)
-            {
-                _currentEnemy = SearchEnemy();
-            }
-
-            if (_currentEnemy != null) 
-            {
-                _state = ShipState.Fight;
-                return;
-            }
-
-            if (Vector3.Distance(transform.position, _currentPlanet.Position) > _holdingRadius)
-            {
-                return;
-            }
-
-            if (_currentPlanet.Owner == _owner)
-            {
-                _state = ShipState.Holding;
-            }
-            else if (_currentPlanet.Owner == null)
-            {
-                _agent.enabled = false;
-                _state = ShipState.Landing;
-            }
-            else
-            {
-                _state = ShipState.Fight;
-            }
-        }
-        else if (_state == ShipState.Landing)
-        {
-            if (_currentPlanet.Owner == _owner)
-            {
-                _agent.enabled = true;
-                _state = ShipState.Holding;
-                return;
-            }
-            else if (_currentPlanet.Owner != _owner && _currentPlanet.Owner != null && SearchEnemy() != null)
-            {
-                _agent.enabled = true;
-                _state = ShipState.Fight;
-                return;
-            }
-
-            if (Vector3.Distance(transform.position, _currentPlanet.Position) < _currentPlanet.Radius)
-            {
-                _currentPlanet.TakeForLanding(this);
-                Destroy(gameObject);
-                Destroy(this);
-            }
-            else
-            {
-                transform.LookAt(_currentPlanet.transform);
-                transform.Translate(_speed * Time.deltaTime * transform.forward, Space.World);
-            }
-        }
-        else if (_state == ShipState.Fight)
-        {
-            if (_currentEnemy == null)
-            {
-                _currentEnemy = SearchEnemy();
-            }
-
-            if (_currentEnemy == null && _currentPlanet.Owner == _owner)
-            {
-                _state = ShipState.Holding;
-                return;
-            }
-            else if (_currentEnemy == null && _currentPlanet.Owner != _owner)
-            {
-                _state = ShipState.Landing;
-                _agent.enabled = false;
-                return;
-            }
-
-            Vector3 targetPosition = _currentEnemy.transform.position;
-            float distanceToEnemy = Vector3.Distance(transform.position, targetPosition);
-
-            if (distanceToEnemy > _attackRange) 
-            {
-                _agent.SetDestination(targetPosition);
-            }
-            else
-            {
-                _agent.SetDestination(transform.position);
-            }
-
-            _timeFromLastAttack += Time.deltaTime;
-
-            if (_timeFromLastAttack > _timeToAttack && distanceToEnemy <= _attackRange)
-            {
-                _currentEnemy.ApplyDamage(_damage);
-                _timeFromLastAttack = 0;
-                _laser.positionCount = 2;
-                _laser.SetPosition(0, transform.position);
-                _laser.SetPosition(1, targetPosition);
-                StartCoroutine(RefreshLaser());
-            }
-        }
+        _shipState = _shipState.Update(this);
     }
+
     private void OnDestroy()
     {
         Dead?.Invoke(this);
@@ -193,25 +55,18 @@ public class Ship : MonoBehaviour
 
     public void FlyToPlanet(Planet planet)
     {
-        _state = ShipState.Fly;
-        _currentPlanet = planet;
-        _agent.enabled = true;
-        _agent.SetDestination(_currentPlanet.Position);
+        ChangeCurrentPlanet(planet);
 
         _currentPlanet.AddShip(this);
-        ChangeCurrentPlanet(planet);
-    }
 
-    public void DefendPlanet()
-    {
-        _state = ShipState.Fight;
+        _shipState = new FlyState(this, planet);
     }
 
     public void ApplyDamage(float damage)
     {
         if (damage < 0)
         {
-            return;
+            throw new System.ArgumentOutOfRangeException(nameof(damage), "Урон не может быть отрицательным");
         }
 
         _health -= damage;
@@ -223,30 +78,25 @@ public class Ship : MonoBehaviour
         }
     }
 
-    private void ChangeCurrentPlanet(Planet planet)
-    {
-        _currentPlanet = planet;
-        _holdingRadius = Random.Range(_currentPlanet.Radius + 2, _currentPlanet.SearchRadius - 1);
-    }
-
-    private Ship SearchEnemy()
+    public Ship SearchEnemy()
     {
         Ship enemy = null;
 
-        Collider[] searchResult = Physics.OverlapSphere(transform.position, _searchRadius);
-
-        float closestDistance = _searchRadius;
+        float distanceToClosestEnemy = _searchRadius;
         Vector3 currentPosition = transform.position;
 
-        foreach (Collider collider in searchResult)
+        Collider[] searchResult = Physics.OverlapSphere(currentPosition, _searchRadius);
+        IEnumerable<Ship> ships = GetAllShipsFromColliders(searchResult);
+
+        foreach (Ship ship in ships)
         {
-            if (collider.TryGetComponent<Ship>(out Ship ship) && ship.TargetPlanet == _currentPlanet && ship != this && ship.Owner != _owner)
+            if (ship.CurrentPlanet == _currentPlanet && IsItEnemyShip(ship))
             {
                 float distance = Vector3.Distance(currentPosition, ship.transform.position);
 
-                if (distance < closestDistance)
+                if (distance < distanceToClosestEnemy)
                 {
-                    closestDistance = distance;
+                    distanceToClosestEnemy = distance;
                     enemy = ship;
                 }
             }
@@ -255,10 +105,30 @@ public class Ship : MonoBehaviour
         return enemy;
     }
 
-    private IEnumerator RefreshLaser()
+    private IEnumerable<Ship> GetAllShipsFromColliders(Collider[] colliders)
     {
-        yield return new WaitForSeconds(1f);
-        _laser.positionCount = 0;
+        List<Ship> ships = new List<Ship>();
+
+        foreach (Collider collider in colliders)
+        {
+            if (collider.TryGetComponent(out Ship ship))
+            {
+                ships.Add(ship);
+            }
+        }
+
+        return ships;
+    }
+
+    private bool IsItEnemyShip(Ship ship)
+    {
+        return ship != this && ship.Owner != _owner;
+    }
+
+    private void ChangeCurrentPlanet(Planet planet)
+    {
+        _currentPlanet = planet;
+        _holdingRadius = Random.Range(_currentPlanet.Radius + 2, _currentPlanet.SearchRadius - 1);
     }
 
     private void OnDrawGizmos()
@@ -266,6 +136,6 @@ public class Ship : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, _searchRadius);
         Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(transform.position, _attackRange);
+        Gizmos.DrawWireSphere(transform.position, Weapon.AttackRange);
     }
 }

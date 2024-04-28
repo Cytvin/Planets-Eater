@@ -72,7 +72,7 @@ public class Planet : MonoBehaviour
     public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
 
-    public int MaxShipToSend => _ships.Count(s => s.State == Ship.ShipState.Holding);
+    public int MaxShipToSend => _ships.Count(s => s.IsHolding);
     public int MaxOwnerShipToReceive => _maxShip - _ships.Count;
 
     public void Init(Player owner, float resourcePerSecond, int maxShip)
@@ -134,13 +134,6 @@ public class Planet : MonoBehaviour
             float currentResourceCount = _resourcePerSecond * Time.deltaTime;
             _owner.AddResource(currentResourceCount);
         }
-        else if (_state == PlanetState.UnderSiege)
-        {
-            foreach (Ship ship in _ships.Where(s => s.State == Ship.ShipState.Holding))
-            {
-                ship.DefendPlanet();
-            }
-        }
     }
 
     public int GetMaxEnemyShipToReceive(Player enemy)
@@ -155,7 +148,7 @@ public class Planet : MonoBehaviour
             throw new ArgumentOutOfRangeException(nameof(amount), "Количество которое пытаются отправить, больче чем количество кораблей доступных к отправке");
         }
 
-        List<Ship> shipsToSend = _ships.Where(s => s.State == Ship.ShipState.Holding).Take(amount).ToList();
+        List<Ship> shipsToSend = _ships.Where(s => s.IsHolding).Take(amount).ToList();
 
         foreach (Ship ship in shipsToSend)
         {
