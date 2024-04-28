@@ -1,15 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using TMPro;
 using Unity.AI.Navigation;
 using UnityEngine;
 
 public class Main : MonoBehaviour
 {
-    //[SerializeField]
-    //private Planet _player1Planet;
-    //[SerializeField]
-    //private Planet _player2Planet;
     [SerializeField]
     private MapGeneratorRules _mapGeneratorRules;
     [SerializeField]
@@ -37,14 +32,33 @@ public class Main : MonoBehaviour
         _map.BuildNavMesh();
 
         Player player1 = new Player(Color.blue);
-        //Player player2 = new Player(Color.red);
-        //_player1Planet.Init(player1);
-        //_player2Planet.Init(player2);
-
-        planets[planets.Count - 1].PlanetCaptured(player1);
+        Player player2 = new Player(Color.red);
 
         PlayerPresenter playerPresenter = new PlayerPresenter(_playerView, player1);
-
         PlanetSelectorPresenter planetSelectorPresenter = new PlanetSelectorPresenter(_planetSelectorView, _planetSelector);
+
+        PlacePlayers(planets, player1, player2);
+    }
+
+    private void PlacePlayers(List<Planet> planets, Player one, Player two)
+    {
+        Planet left = planets[0];
+        Planet right = planets[1];
+
+        foreach(Planet planet in planets) 
+        {
+            if (planet.Position.x < left.Position.x)
+            {
+                left = planet;
+            }
+
+            if (planet.Position.x > right.Position.x) 
+            {
+                right = planet;
+            }
+        }
+
+        left.ChangeOwner(one);
+        right.ChangeOwner(two);
     }
 }

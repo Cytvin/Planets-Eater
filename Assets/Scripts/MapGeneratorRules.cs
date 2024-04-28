@@ -28,8 +28,7 @@ public class MapGeneratorRules : ScriptableObject
     public int MiddlePlanetResourcePerSecondProduction = 3;
     public int LittlePlanetResourcePerSecondProduction = 1;
 
-    public int MinDistanceBetweenPlanet = 10;
-    public int MaxDistanceBetweenPlanet = 14;
+    public int MaxDistanceBetweenPlanet = 25;
 
     public float MapHeight = 0;
     public float MapWidth = 0;

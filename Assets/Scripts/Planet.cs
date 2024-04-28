@@ -61,6 +61,7 @@ public class Planet : MonoBehaviour
     public float ShipUpgradeCost => _shipUpgradeCost;
     #endregion
 
+    public event Action<Planet> PlanetCaptured;
     public event Action<int> ShipsCountChanged;
     public int ShipToCaptured => _shipToCaptured;
     public Vector3 Position => transform.position;
@@ -172,14 +173,14 @@ public class Planet : MonoBehaviour
 
             if (_shipToCaptured <= 0)
             {
-                PlanetCaptured(ship.Owner);
+                ChangeOwner(ship.Owner);
             }
             return;
         }
 
         if (_ownerShipsCountNear <= 0)
         {
-            PlanetCaptured(ship.Owner);
+            ChangeOwner(ship.Owner);
             ShipsCountChanged?.Invoke(_ships.Count);
         }
     }
@@ -257,10 +258,13 @@ public class Planet : MonoBehaviour
         return nearestShips;
     }
 
-    public void PlanetCaptured(Player owner)
+    public void ChangeOwner(Player owner)
     {
+        PlanetCaptured?.Invoke(this);
+
         _shipToCaptured = 0;
         _owner = owner;
+        _owner.AddPlanet(this);
         Material material = GetComponent<MeshRenderer>().material;
         material.color = owner.Color;
         _state = PlanetState.Captured;
@@ -273,6 +277,7 @@ public class Planet : MonoBehaviour
         Ship ship = Instantiate(_shipPrefab, transform.position, _shipPrefab.transform.rotation);
         ship.Init(this, _owner, _shipDamage);
         ship.gameObject.name = $"Ship {_shipIndex++} from {gameObject.name}";
+        _owner.AddShip(ship);
         return ship;
     }
 

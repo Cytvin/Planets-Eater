@@ -22,7 +22,6 @@ public class Ship : MonoBehaviour
     private ShipState _state;
     private Player _owner;
     private Planet _currentPlanet;
-    private bool _justCreated = true;
     private float _holdingRadius;
     private float _speed = 5f;
     private float _angle;
@@ -50,33 +49,28 @@ public class Ship : MonoBehaviour
         _state = ShipState.Takeoff;
         _owner = owner;
         _laser.material.color = owner.Color;
-        _currentPlanet = currentPlanet;
         _damage = damge;
+
+        Vector3 rotationAngle = new Vector3(0, Random.Range(0.0f, 360.0f), 0);
+        transform.Rotate(rotationAngle);
+
+        _angle = transform.rotation.eulerAngles.y * Mathf.Deg2Rad;
+
+        ChangeCurrentPlanet(currentPlanet);
     }
 
     private void Update()
     {
         if (_state == ShipState.Takeoff)
         {
-            if (_justCreated) 
-            {
-                Vector3 rotationAngle = new Vector3(0, Random.Range(0.0f, 360.0f), 0);
-                transform.Rotate(rotationAngle);
-
-                _angle = transform.rotation.eulerAngles.y * Mathf.Deg2Rad;
-
-                _holdingRadius = Random.Range(_currentPlanet.Radius, _currentPlanet.SearchRadius); //TODO: –ешить проблему с расчетом радиуса и переместить его в другое место, т.к. он должен перерастчитыватьс€ в зависимости от размера планеты
-                _justCreated = false;
-            }
-
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) >= _currentPlanet.Radius)
+            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) > _currentPlanet.Radius + 1)
             {
                 _agent.enabled = true;
                 _collider.enabled = true;
                 _state = ShipState.Holding;
             }
              
-            transform.Translate(transform.forward * _speed * Time.deltaTime, Space.World);
+            transform.Translate(_speed * Time.deltaTime * transform.forward, Space.World);
         }
         else if (_state == ShipState.Holding)
         {
@@ -85,13 +79,13 @@ public class Ship : MonoBehaviour
             float x = Mathf.Cos(_angle * 0.5f) * _holdingRadius;
             float z = Mathf.Sin(_angle * 0.5f) * _holdingRadius;
 
-            Vector3 nextPoint = new Vector3(x, 0, z) + _currentPlanet.transform.position;
+            Vector3 nextPoint = new Vector3(x, 0, z) + _currentPlanet.Position;
 
             _agent.SetDestination(nextPoint);
         }
         else if (_state == ShipState.Fly)
         {
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) < _currentPlanet.SearchRadius)
+            if (Vector3.Distance(transform.position, _currentPlanet.Position) < _currentPlanet.SearchRadius)
             {
                 _currentEnemy = SearchEnemy();
             }
@@ -102,7 +96,7 @@ public class Ship : MonoBehaviour
                 return;
             }
 
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) > _holdingRadius)
+            if (Vector3.Distance(transform.position, _currentPlanet.Position) > _holdingRadius)
             {
                 return;
             }
@@ -136,7 +130,7 @@ public class Ship : MonoBehaviour
                 return;
             }
 
-            if (Vector3.Distance(transform.position, _currentPlanet.transform.position) < _currentPlanet.Radius)
+            if (Vector3.Distance(transform.position, _currentPlanet.Position) < _currentPlanet.Radius)
             {
                 _currentPlanet.TakeForLanding(this);
                 Destroy(gameObject);
@@ -145,7 +139,7 @@ public class Ship : MonoBehaviour
             else
             {
                 transform.LookAt(_currentPlanet.transform);
-                transform.Translate(transform.forward * _speed * Time.deltaTime, Space.World);
+                transform.Translate(_speed * Time.deltaTime * transform.forward, Space.World);
             }
         }
         else if (_state == ShipState.Fight)
@@ -192,7 +186,6 @@ public class Ship : MonoBehaviour
             }
         }
     }
-
     private void OnDestroy()
     {
         Dead?.Invoke(this);
@@ -203,9 +196,10 @@ public class Ship : MonoBehaviour
         _state = ShipState.Fly;
         _currentPlanet = planet;
         _agent.enabled = true;
-        _agent.SetDestination(_currentPlanet.transform.position);
+        _agent.SetDestination(_currentPlanet.Position);
 
-        _currentPlanet.AddShip(this); //TODO: Ќужно будет подумать, куда лучше переместить этот метод, чтобы не было такой св€занности
+        _currentPlanet.AddShip(this);
+        ChangeCurrentPlanet(planet);
     }
 
     public void DefendPlanet()
@@ -227,6 +221,12 @@ public class Ship : MonoBehaviour
             Destroy(gameObject);
             Destroy(this);
         }
+    }
+
+    private void ChangeCurrentPlanet(Planet planet)
+    {
+        _currentPlanet = planet;
+        _holdingRadius = Random.Range(_currentPlanet.Radius + 2, _currentPlanet.SearchRadius - 1);
     }
 
     private Ship SearchEnemy()

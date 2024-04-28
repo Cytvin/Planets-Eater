@@ -26,7 +26,7 @@ public class PlanetSelector : MonoBehaviour
 
             if (_from == null)
             {
-                if (pickedPlanet.Owner != null) //Для теста, чтобы проверять поведение кораблей. Потом поменять на == Owner.Player
+                if (pickedPlanet.Owner != null) //TODO: Для теста, чтобы проверять поведение кораблей. Потом поменять на == Owner.Player
                 {
                     _from = pickedPlanet;
                     PlanetSelected?.Invoke(_from);

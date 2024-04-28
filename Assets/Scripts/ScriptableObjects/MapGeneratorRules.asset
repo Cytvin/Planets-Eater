@@ -32,7 +32,7 @@ MonoBehaviour:
   MiddlePlanetResourcePerSecondProduction: 3
   LittlePlanetResourcePerSecondProduction: 1
   MinDistanceBetweenPlanet: 24
-  MaxDistanceBetweenPlanet: 30
+  MaxDistanceBetweenPlanet: 25
   MapHeight: 27.5
   MapWidth: 49
   PlanetPrefabs:
