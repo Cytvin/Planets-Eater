@@ -106,10 +106,7 @@ public class MapGenerator
 
             if (_generateMapAttempts > _maxGenerateMapAttempts)
             {
-                Debug.Log("Не удалось сгенерировать карту, проверьте правила генерации");
-
-                ResetMap();
-                return _planets;
+                throw new System.ArgumentException("Не удалось сгенерировать карту, проверьте правила генерации");
             }
 
             ResetMap();

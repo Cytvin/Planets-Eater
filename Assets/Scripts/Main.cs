@@ -38,6 +38,7 @@ public class Main : MonoBehaviour
         PlanetSelectorPresenter planetSelectorPresenter = new PlanetSelectorPresenter(_planetSelectorView, _planetSelector);
 
         PlacePlayers(planets, player1, player2);
+        player1.AddResource(1000000);
     }
 
     private void PlacePlayers(List<Planet> planets, Player one, Player two)

@@ -43,6 +43,11 @@ public class PlanetSelector : MonoBehaviour
 
         if (Input.GetMouseButtonDown(1))
         {
+            if (_from == null)
+            {
+                return;
+            }
+
             Refresh();
         }
 
