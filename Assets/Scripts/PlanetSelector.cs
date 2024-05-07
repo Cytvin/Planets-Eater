@@ -17,28 +17,7 @@ public class PlanetSelector : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            Planet pickedPlanet = PickPLanet();
-
-            if (pickedPlanet == null) 
-            {
-                return;
-            }
-
-            if (_from == null)
-            {
-                if (pickedPlanet.Owner != null) //TODO: Для теста, чтобы проверять поведение кораблей. Потом поменять на == Owner.Player
-                {
-                    _from = pickedPlanet;
-                    PlanetSelected?.Invoke(_from);
-                }
-            }
-            else
-            {
-                if (pickedPlanet != _from)
-                {
-                    _to = pickedPlanet;
-                }
-            }
+            SelectPlanet();
         }
 
         if (Input.GetMouseButtonDown(1))
@@ -53,36 +32,15 @@ public class PlanetSelector : MonoBehaviour
 
         if (_from != null)
         {
-            Vector3 startLinePosition = _from.transform.position;
-            Vector3 mousePosition = Input.mousePosition;
-            Ray searchPlanetRay = Camera.main.ScreenPointToRay(mousePosition);
-            mousePosition.z = Camera.main.transform.position.y - 2.5f;
-            Vector3 endLinePosition = Camera.main.ScreenToWorldPoint(mousePosition);
+            Vector3 fromPosition;
+            Vector3 endLinePosition;
+            (fromPosition, endLinePosition) = GetStartAndEndLinePosition();
 
-            if (Physics.Raycast(searchPlanetRay, out RaycastHit hit))
-            {
-                if (hit.collider.TryGetComponent<Planet>(out _))
-                {
-                    endLinePosition = hit.transform.position;
-                }
-            }
-
-            _line.positionCount = 2;
-            _line.SetPosition(0, startLinePosition);
-            _line.SetPosition(1, endLinePosition);
-
-            if (Vector3.Distance(startLinePosition, endLinePosition) > _maxDistanceBetwenPlanet)
-            {
-                _line.material.color = Color.red;
-            }
-            else
-            {
-                _line.material.color = Color.blue;
-            }
+            DrawLine(fromPosition, endLinePosition);
 
             if (_to != null)
             {
-                if (Vector3.Distance(startLinePosition, _to.transform.position) > _maxDistanceBetwenPlanet)
+                if (Vector3.Distance(fromPosition, _to.transform.position) > _maxDistanceBetwenPlanet)
                 {
                     Debug.Log("Расстояние между планетами больше максимального");
                     Refresh();
@@ -95,7 +53,33 @@ public class PlanetSelector : MonoBehaviour
         }
     }
 
-    public Planet PickPLanet()
+    private void SelectPlanet()
+    {
+        Planet selectedPlanet = SearchPlanetByRayCast();
+
+        if (selectedPlanet == null)
+        {
+            return;
+        }
+
+        if (_from == null)
+        {
+            if (selectedPlanet.Owner != null) //TODO: Для теста, чтобы проверять поведение кораблей. Потом поменять на == Owner.Player
+            {
+                _from = selectedPlanet;
+                PlanetSelected?.Invoke(_from);
+            }
+        }
+        else
+        {
+            if (selectedPlanet != _from)
+            {
+                _to = selectedPlanet;
+            }
+        }
+    }
+
+    private Planet SearchPlanetByRayCast()
     {
         Vector3 screenPoint = Input.mousePosition;
         Ray ray = Camera.main.ScreenPointToRay(screenPoint);
@@ -108,6 +92,41 @@ public class PlanetSelector : MonoBehaviour
         }
 
         return null;
+    }
+
+    private (Vector3, Vector3) GetStartAndEndLinePosition()
+    {
+        Vector3 fromPosition = _from.transform.position;
+        Vector3 mousePosition = Input.mousePosition;
+        Ray searchPlanetRay = Camera.main.ScreenPointToRay(mousePosition);
+        mousePosition.z = Camera.main.transform.position.y - 2.5f;
+        Vector3 endLinePosition = Camera.main.ScreenToWorldPoint(mousePosition);
+
+        if (Physics.Raycast(searchPlanetRay, out RaycastHit hit))
+        {
+            if (hit.collider.TryGetComponent<Planet>(out _))
+            {
+                endLinePosition = hit.transform.position;
+            }
+        }
+
+        return (fromPosition, endLinePosition);
+    }
+
+    private void DrawLine(Vector3 startLinePosition, Vector3 endLinePosition)
+    {
+        _line.positionCount = 2;
+        _line.SetPosition(0, startLinePosition);
+        _line.SetPosition(1, endLinePosition);
+
+        if (Vector3.Distance(startLinePosition, endLinePosition) > _maxDistanceBetwenPlanet)
+        {
+            _line.material.color = Color.red;
+        }
+        else
+        {
+            _line.material.color = Color.blue;
+        }
     }
 
     private void Refresh()

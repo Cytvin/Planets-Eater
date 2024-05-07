@@ -39,7 +39,6 @@ public class Planet : MonoBehaviour
     public Vector3 Position => transform.position;
     public Player Owner => _owner;
     public int ShipCount => _ownerShipsCountNear;
-    public int MaxShip => _maxShipCount;
     public float Radius => _radius;
     public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
@@ -79,20 +78,20 @@ public class Planet : MonoBehaviour
             {
                 _state = PlanetState.Captured;
             }
-        }
 
-        if (_state == PlanetState.Captured)
-        {
-            _factory.IncrementProductionTime(Time.deltaTime);
-
-            if (_factory.CanCreate && _ships.Count < _maxShipCount)
+            if (_state == PlanetState.Captured)
             {
-                Ship ship = _factory.CreateShip(_shipPrefab);
-                AddShip(ship);
-            }
+                _factory.IncrementProductionTime(Time.deltaTime);
 
-            float currentResourceCount = _resourcePerSecond * Time.deltaTime;
-            _owner.AddResource(currentResourceCount);
+                if (_factory.CanCreate && _ships.Count < _maxShipCount)
+                {
+                    Ship ship = _factory.CreateShip(_shipPrefab);
+                    AddShip(ship);
+                }
+
+                float currentResourceCount = _resourcePerSecond * Time.deltaTime;
+                _owner.AddResource(currentResourceCount);
+            }
         }
     }
 

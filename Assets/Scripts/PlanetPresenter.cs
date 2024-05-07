@@ -1,26 +1,26 @@
 public class PlanetPresenter
 {
     private Planet _planet;
-    private PlanetView _planetView;
+    private PlanetView _view;
 
     public PlanetPresenter(Planet planet, PlanetView planetView)
     {
         _planet = planet;
-        _planetView = planetView;
+        _view = planetView;
         if (_planet.State == Planet.PlanetState.NotCaptured)
         {
-            _planetView.SetText(planet.ShipToCaptured.ToString());
+            _view.SetText(planet.ShipToCaptured.ToString());
         }
         else
         {
-            _planetView.SetText(planet.ShipCount.ToString());
+            _view.SetText(planet.ShipCount.ToString());
         }
 
-        _planet.ShipsCountChanged += DisplayShipsCount;
+        _planet.ShipsCountChanged += OnShipCountChanged;
     }
 
-    private void DisplayShipsCount(int shipsCount)
+    private void OnShipCountChanged(int shipsCount)
     {
-        _planetView.SetText(shipsCount.ToString());
+        _view.SetText(shipsCount.ToString());
     }
 }
