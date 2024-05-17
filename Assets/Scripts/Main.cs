@@ -19,7 +19,8 @@ public class Main : MonoBehaviour
     private PlanetSelector _planetSelector;
     [SerializeField]
     private PlanetSelectorView _planetSelectorView;
-
+    [SerializeField]
+    private AI _ai;
 
     private void Awake()
     {
@@ -27,21 +28,24 @@ public class Main : MonoBehaviour
         _mapGeneratorRules.MapWidth = (_mapBoundary.transform.localScale.x / 2) * 10;
 
         MapGenerator generator = new MapGenerator(_mapGeneratorRules, _planetHolder);
-        List<Planet> planets = generator.GenerateMap().ToList();
+        List<Planet> map = generator.GenerateMap().ToList();
 
         _map.BuildNavMesh();
 
-        Player player1 = new Player(Color.blue);
-        Player player2 = new Player(Color.red);
+        Player player = new Player(Color.blue);
+        Player ai = new Player(Color.red);
 
-        PlayerPresenter playerPresenter = new PlayerPresenter(_playerView, player1);
+        PlayerPresenter playerPresenter = new PlayerPresenter(_playerView, player);
         PlanetSelectorPresenter planetSelectorPresenter = new PlanetSelectorPresenter(_planetSelectorView, _planetSelector);
 
-        PlacePlayers(planets, player1, player2);
-        player1.AddResource(1000000);
+        _ai.Init(ai, map);
+
+        PlacePlayers(map, player, ai);
+        player.AddResource(1000000);
+        ai.AddResource(1000000000);
     }
 
-    private void PlacePlayers(List<Planet> planets, Player one, Player two)
+    private void PlacePlayers(List<Planet> planets, Player player, Player ai)
     {
         Planet left = planets[0];
         Planet right = planets[1];
@@ -59,7 +63,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        left.ChangeOwner(one);
-        right.ChangeOwner(two);
+        left.ChangeOwner(player);
+        right.ChangeOwner(ai);
     }
 }

@@ -21,6 +21,7 @@ public class Planet : MonoBehaviour
     [SerializeField]
     private PlanetState _state;
     private int _maxShipCount = 50;
+    [SerializeField]
     private List<Ship> _ships = new List<Ship>();
     private List<Ship> _enemyShips = new List<Ship>();
     private ShipFactory _factory;

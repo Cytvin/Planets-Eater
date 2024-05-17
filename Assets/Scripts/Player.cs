@@ -15,6 +15,7 @@ public class Player
     
     public Color Color => _color;
     public float RecourceCount => _resource;
+    public IEnumerable<Planet> Planets => _planets;
 
     public Player(Color color)
     {
