@@ -21,12 +21,13 @@ public class Planet : MonoBehaviour
     [SerializeField]
     private PlanetState _state;
     private int _maxShipCount = 50;
-    [SerializeField]
-    private List<Ship> _ships = new List<Ship>();
+    private List<Ship> _ownerShips = new List<Ship>();
     private List<Ship> _enemyShips = new List<Ship>();
     private ShipFactory _factory;
     private float _radius;
     private float _searchRadius = 0;
+
+    private Dictionary<Planet, float> _neighbors = new Dictionary<Planet, float>();
 
     private int _ownerShipsCountNear;
     private int _enemyShipsCountNear;
@@ -44,8 +45,8 @@ public class Planet : MonoBehaviour
     public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
     public ShipFactory Factory => _factory;
-    public int MaxShipToSend => _ships.Count(s => s.IsHolding);
-    public int MaxOwnerShipToReceive => _maxShipCount - _ships.Count;
+    public int MaxShipToSend => _ownerShips.Count(s => s.IsHolding);
+    public IReadOnlyDictionary<Planet, float> Neighbors => _neighbors;
 
     public void Init(int shipForCaptured, float resourcePerSecond, int maxShip, Ship shipPrefab)
     {
@@ -67,7 +68,7 @@ public class Planet : MonoBehaviour
     {
         if (_state != PlanetState.NotCaptured) 
         {
-            _ownerShipsCountNear = CountNearestShips(_ships);
+            _ownerShipsCountNear = CountNearestShips(_ownerShips);
             _enemyShipsCountNear = CountNearestShips(_enemyShips);
             ShipsCountChanged?.Invoke(_ownerShipsCountNear);
 
@@ -84,7 +85,7 @@ public class Planet : MonoBehaviour
             {
                 _factory.IncrementProductionTime(Time.deltaTime);
 
-                if (_factory.CanCreate && _ships.Count < _maxShipCount)
+                if (_factory.CanCreate && _ownerShips.Count < _maxShipCount)
                 {
                     Ship ship = _factory.CreateShip(_shipPrefab);
                     AddShip(ship);
@@ -96,9 +97,14 @@ public class Planet : MonoBehaviour
         }
     }
 
-    public int GetMaxEnemyShipToReceive(Player enemy)
+    public int GetMaxShipToReceiveByPlayer(Player player)
     {
-        return _maxShipCount - _enemyShips.Count(s => s.Owner == enemy);
+        if (_owner == player)
+        {
+            return _maxShipCount - _ownerShips.Count;
+        }
+
+        return _maxShipCount - _enemyShips.Count(s => s.Owner == player);
     }
 
     public void SendShipsByAmount(Planet planet, int amount)
@@ -108,7 +114,7 @@ public class Planet : MonoBehaviour
             throw new ArgumentOutOfRangeException(nameof(amount), "Количество которое пытаются отправить, больче чем количество кораблей доступных к отправке");
         }
 
-        List<Ship> shipsToSend = _ships.Where(s => s.IsHolding).Take(amount).ToList();
+        List<Ship> shipsToSend = _ownerShips.Where(s => s.IsHolding).Take(amount).ToList();
 
         foreach (Ship ship in shipsToSend)
         {
@@ -134,7 +140,7 @@ public class Planet : MonoBehaviour
         if (_ownerShipsCountNear <= 0)
         {
             ChangeOwner(ship.Owner);
-            ShipsCountChanged?.Invoke(_ships.Count);
+            ShipsCountChanged?.Invoke(_ownerShips.Count);
         }
     }
 
@@ -142,7 +148,7 @@ public class Planet : MonoBehaviour
     {
         if (ship.Owner == _owner)
         {
-            _ships.Add(ship);
+            _ownerShips.Add(ship);
         }
         else
         {
@@ -152,11 +158,36 @@ public class Planet : MonoBehaviour
         ship.Dead += RemoveShip;
     }
 
+    public void AddNeighbor(Planet neighbor, float distance)
+    {
+        _neighbors.Add(neighbor, distance);
+    }
+
+    public bool IsNeighbor(Planet planet)
+    {
+        if (_neighbors.ContainsKey(planet))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public float GetDistanceToNeighbor(Planet neighbor)
+    {
+        if (!_neighbors.ContainsKey(neighbor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(neighbor), "There's no such neighbor.");
+        }
+
+        return _neighbors[neighbor];
+    }
+
     private void RemoveShip(Ship ship)
     {
         if (ship.Owner == _owner)
         {
-            _ships.Remove(ship);
+            _ownerShips.Remove(ship);
         }
         else
         {
@@ -192,7 +223,7 @@ public class Planet : MonoBehaviour
         material.color = owner.Color;
         _state = PlanetState.Captured;
 
-        (_ships, _enemyShips) = (_enemyShips.Where(s => s.Owner == owner).ToList(), _ships);
+        (_ownerShips, _enemyShips) = (_enemyShips.Where(s => s.Owner == owner).ToList(), _ownerShips);
     }
 
     private void OnDrawGizmos()

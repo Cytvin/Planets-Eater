@@ -40,7 +40,7 @@ public class PlanetSelector : MonoBehaviour
 
             if (_to != null)
             {
-                if (Vector3.Distance(fromPosition, _to.transform.position) > _maxDistanceBetwenPlanet)
+                if (!_from.IsNeighbor(_to) /*|| _from.GetDistanceToNeighbor(_to) > _maxDistanceBetwenPlanet*/)
                 {
                     Debug.Log("Расстояние между планетами больше максимального");
                     Refresh();
@@ -148,14 +148,7 @@ public class PlanetSelector : MonoBehaviour
 
         int shipAmount;
 
-        if (from.Owner == to.Owner)
-        {
-            shipAmount = Mathf.Min(to.MaxOwnerShipToReceive, from.MaxShipToSend);
-        }
-        else
-        {
-            shipAmount = Mathf.Min(to.GetMaxEnemyShipToReceive(from.Owner), from.MaxShipToSend);
-        }
+        shipAmount = Mathf.Min(to.GetMaxShipToReceiveByPlayer(from.Owner), from.MaxShipToSend);
 
         Debug.Log($"Будет отправлено {shipAmount} кораблей");
         from.SendShipsByAmount(to, shipAmount);

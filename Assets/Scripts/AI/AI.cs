@@ -6,7 +6,6 @@ public class AI : MonoBehaviour
 {
     private Player _ai;
     private IEnumerable<Planet> _map;
-    private float _maxDistanceBetwenPlanet = 25f;
 
     public void Init(Player ai, IEnumerable<Planet> map)
     {
@@ -33,9 +32,10 @@ public class AI : MonoBehaviour
 
     private Planet SearchTargetPlanet(Planet startPlanet)
     {
+        //TODO: Переделать алгоритм выбора планеты, на которую отправлять корабли
         foreach (Planet planet in _map.Where(p => p != startPlanet))
         {
-            if (Vector3.Distance(planet.Position, startPlanet.Position) <= _maxDistanceBetwenPlanet && CanReceiveShips(planet))
+            if (startPlanet.IsNeighbor(planet) && planet.GetMaxShipToReceiveByPlayer(_ai) > 0)
             {
                 return planet;
             }
@@ -44,44 +44,17 @@ public class AI : MonoBehaviour
         return null;
     }
 
-    private bool CanReceiveShips(Planet target)
-    {
-        if (target.Owner == _ai)
-        {
-            if (target.MaxOwnerShipToReceive == 0)
-            {
-                return false;
-            }
-        }
-
-        if (target.GetMaxEnemyShipToReceive(_ai) == 0)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
     private void TransferShip(Planet from, Planet to)
     {
         if (from.ShipCount == 0)
         {
-            //Debug.Log("Нет кораблей для отправки");
             return;
         }
 
         int shipAmount;
 
-        if (from.Owner == to.Owner)
-        {
-            shipAmount = Mathf.Min(to.MaxOwnerShipToReceive, from.MaxShipToSend);
-        }
-        else
-        {
-            shipAmount = Mathf.Min(to.GetMaxEnemyShipToReceive(from.Owner), from.MaxShipToSend);
-        }
+        shipAmount = Mathf.Min(to.GetMaxShipToReceiveByPlayer(from.Owner), from.MaxShipToSend);
 
-        //Debug.Log($"Будет отправлено {shipAmount} кораблей");
         from.SendShipsByAmount(to, shipAmount);
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class MapGenerator
@@ -86,34 +87,55 @@ public class MapGenerator
     {
         PlanetBuilder planetBuilder = new PlanetBuilder(_rules.PlanetView, _planetHolder);
 
-        foreach (PlanetParameter parameter in _planetParameters) 
-        {
-            Vector3 planetPosition = GeneratePlanetPosition(parameter);
+        bool mapNotGenerated;
 
-            if (_generatePositionAttemptsCount > _maxGeneratePositionAttempts)
+        do
+        {
+            mapNotGenerated = false;
+
+            foreach (PlanetParameter parameter in _planetParameters)
             {
-                break;
+                Vector3 planetPosition = GeneratePlanetPosition(parameter);
+
+                if (_generatePositionAttemptsCount > _maxGeneratePositionAttempts)
+                {
+                    break;
+                }
+
+                Planet planet = CreatePlanet(planetBuilder, parameter, planetPosition);
+
+                _planets.Add(planet);
             }
 
-            Planet planet = CreatePlanet(planetBuilder, parameter, planetPosition);
-
-            _planets.Add(planet);
-        }
-
-        if (_planets.Count < _rules.MaxPlanet)
-        {
-            _generateMapAttempts++;
-
-            if (_generateMapAttempts > _maxGenerateMapAttempts)
+            if (_planets.Count < _rules.MaxPlanet)
             {
-                throw new System.ArgumentException("Не удалось сгенерировать карту, проверьте правила генерации");
+                _generateMapAttempts++;
+
+                if (_generateMapAttempts > _maxGenerateMapAttempts)
+                {
+                    throw new System.ArgumentException("Не удалось сгенерировать карту, проверьте правила генерации");
+                }
+
+                mapNotGenerated = true;
             }
 
-            ResetMap();
-            GenerateMap();
-        }
+            if (mapNotGenerated)
+            {
+                ResetMap();
+            }
+        } while (mapNotGenerated);
 
         ActivatePlanets();
+
+        MakeNeighbor(_planets);
+
+        foreach (Planet planet in _planets)
+        {
+            foreach (KeyValuePair<Planet, float> keyValue in planet.Neighbors)
+            {
+                Debug.Log($"Planet {planet.name}: neighbor {keyValue.Key.name} distance {keyValue.Value}");
+            }
+        }
 
         return _planets;
     }
@@ -201,6 +223,33 @@ public class MapGenerator
         planet.gameObject.SetActive(false);
 
         return planet;
+    }
+
+    private void MakeNeighbor(IEnumerable<Planet> planets)
+    {
+        foreach (Planet planet in planets)
+        {
+            foreach (Planet otherPlanet in planets.Where(p => p != planet))
+            {
+                float distance = Vector3.Distance(planet.Position, otherPlanet.Position);
+
+                if (distance <= _rules.MaxDistanceBetweenPlanet)
+                {
+                    if (Physics.Linecast(planet.Position, otherPlanet.Position, out RaycastHit hit) &&
+                        hit.collider.TryGetComponent<Planet>(out Planet hitPlanet))
+                    {
+                        if (otherPlanet == hitPlanet)
+                        {
+                            planet.AddNeighbor(otherPlanet, distance);
+                        }
+                        else
+                        {
+                            Debug.Log($"Hit another planet {hitPlanet.name} shoot from {planet.name} to {otherPlanet.name}");
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void ActivatePlanets()
