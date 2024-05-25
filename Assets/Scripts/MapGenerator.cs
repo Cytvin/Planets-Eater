@@ -129,14 +129,6 @@ public class MapGenerator
 
         MakeNeighbor(_planets);
 
-        foreach (Planet planet in _planets)
-        {
-            foreach (KeyValuePair<Planet, float> keyValue in planet.Neighbors)
-            {
-                Debug.Log($"Planet {planet.name}: neighbor {keyValue.Key.name} distance {keyValue.Value}");
-            }
-        }
-
         return _planets;
     }
 
@@ -217,7 +209,6 @@ public class MapGenerator
             .ShipForCaptured(Random.Range(parameter.MinShipToCaptured, parameter.MaxShipToCaptured))
             .ResourceProductionPerSecond(parameter.ResourcePerSecond)
             .MaxShip(parameter.MaxShip)
-            .ShipPrefab(_rules.ShipPrefab)
             .Build();
 
         planet.gameObject.SetActive(false);

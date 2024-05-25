@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Player
 {
+    private Ship _shipPrefab;
     private Color _color;
     private float _resource;
     private List<Planet> _planets;
@@ -14,14 +15,16 @@ public class Player
     public event Action<float> ResourceCountChanged;
     
     public Color Color => _color;
-    public float RecourceCount => _resource;
+    public int PlanetsCount => _planets.Count;
     public IEnumerable<Planet> Planets => _planets;
+    public Ship ShipPrefab => _shipPrefab;
 
-    public Player(Color color)
+    public Player(Ship shipPrefab, Color color)
     {
         _planets = new List<Planet>();
         _ships = new List<Ship>();
         _color = color;
+        _shipPrefab = shipPrefab;
     }
 
     public void AddPlanet(Planet planet)

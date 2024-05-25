@@ -6,6 +6,7 @@ public class AI : MonoBehaviour
 {
     private Player _ai;
     private IEnumerable<Planet> _map;
+    private float _percentageShipsToSend = 25;
 
     public void Init(Player ai, IEnumerable<Planet> map)
     {
@@ -19,29 +20,145 @@ public class AI : MonoBehaviour
 
         foreach (Planet planet in planets)
         {
-            Planet targetPlanet = SearchTargetPlanet(planet);
-
-            if (targetPlanet == null)
+            if (SendShipToUnderSiegeNeighbor(planet))
             {
                 continue;
             }
 
-            TransferShip(planet, targetPlanet);
+            if (IsAllNeighborAllies(planet))
+            {
+                Planet targetPlanet = SelectPlanetForReinforcment(planet);
+
+                if (targetPlanet == null)
+                {
+                    continue;
+                }
+
+                if (planet.ShipCount > planet.MaxShipCount * (_percentageShipsToSend / 100f))
+                {
+                    TransferShip(planet, targetPlanet);
+                }
+            }
+            else
+            {
+                Planet targetPlanet = SearchNearEnemyPlanet(planet);
+
+                if (targetPlanet == null)
+                {
+                    continue;
+                }
+
+                if (planet.ShipCount > planet.MaxShipCount * (_percentageShipsToSend / 100f))
+                {
+                    TransferShip(planet, targetPlanet);
+                }
+            }
         }
     }
 
-    private Planet SearchTargetPlanet(Planet startPlanet)
+    private bool SendShipToUnderSiegeNeighbor(Planet planet)
     {
-        //TODO: Переделать алгоритм выбора планеты, на которую отправлять корабли
-        foreach (Planet planet in _map.Where(p => p != startPlanet))
+        foreach (Planet neighbour in planet.Neighbors.Keys)
         {
-            if (startPlanet.IsNeighbor(planet) && planet.GetMaxShipToReceiveByPlayer(_ai) > 0)
+            if (neighbour.State == Planet.PlanetState.UnderSiege)
             {
-                return planet;
+                TransferShip(planet, neighbour);
+                return true;
             }
         }
 
-        return null;
+        return false;
+    }
+
+    private bool IsAllNeighborAllies(Planet planet)
+    {
+        foreach (Planet neighbor in planet.Neighbors.Keys)
+        {
+            if (neighbor.Owner != _ai)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private Planet SelectPlanetForReinforcment(Planet planet)
+    {
+        KeyValuePair<Planet, float> firstNeighbour = planet.Neighbors.First();
+
+        Planet selectedPlanet = firstNeighbour.Key;
+        float minDistance = firstNeighbour.Value;
+
+        foreach (KeyValuePair<Planet, float> neighbor in planet.Neighbors)
+        {
+            if (neighbor.Key.GetMaxShipToReceiveByPlayer(_ai) > 0 && neighbor.Value < minDistance)
+            {
+                selectedPlanet = neighbor.Key;
+            }
+        }
+
+        return selectedPlanet;
+    }
+
+    private Planet SearchNearEnemyPlanet(Planet planet)
+    {
+        List<Planet> searched = new List<Planet>();
+        Queue<Planet> searchQueue = new Queue<Planet>();
+        Dictionary<Planet, Planet> previous = new Dictionary<Planet, Planet>();
+
+        searchQueue.Enqueue(planet);
+
+        searched.Add(planet);
+        Planet searchedPlanet = null;
+
+        while (searchQueue.Count > 0)
+        {
+            Planet currentPlanet = searchQueue.Dequeue();
+
+            foreach(Planet neighbor in currentPlanet.Neighbors.Keys)
+            {
+                if (!searched.Contains(neighbor))
+                {
+                    searchQueue.Enqueue(neighbor);
+                    searched.Add(neighbor);
+                    previous.Add(neighbor, currentPlanet);
+
+                    if (neighbor.Owner != _ai)
+                    {
+                        searchedPlanet = neighbor;
+                        searchQueue.Clear();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (searchedPlanet == null)
+        {
+            return null;
+        }
+
+        List<Planet> path = new List<Planet>();
+
+        Planet previousPlanet = searchedPlanet;
+
+        while (previous.ContainsKey(previousPlanet))
+        {
+            previousPlanet = previous[previousPlanet];
+            path.Add(previousPlanet);
+        }
+
+        path.Reverse();
+
+        if (path.Count == 1)
+        {
+            return searchedPlanet;
+        }
+        else
+        {
+            return path[1];
+        }
     }
 
     private void TransferShip(Planet from, Planet to)

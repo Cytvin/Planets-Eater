@@ -5,7 +5,6 @@ public class PlanetBuilder
     private PlanetView _planetViewPrefab;
     private Transform _parent;
     private GameObject _planetModel;
-    private Ship _shipPrefab;
     private Vector3 _position;
     private Quaternion _rotation;
     private int _size;
@@ -61,12 +60,6 @@ public class PlanetBuilder
         return this;
     }
 
-    public PlanetBuilder ShipPrefab(Ship shipPrefab)
-    {
-        _shipPrefab = shipPrefab;
-        return this;
-    }
-
     public Planet Build() 
     {
         GameObject planetGameObject = Object.Instantiate(_planetModel, _position, _rotation, _parent);
@@ -77,7 +70,7 @@ public class PlanetBuilder
 
         planetGameObject.AddComponent<SphereCollider>();
 
-        planet.Init(_shipForCaptured, _resourceProductionPerSecond, _maxShip, _shipPrefab);
+        planet.Init(_shipForCaptured, _resourceProductionPerSecond, _maxShip);
 
         PlanetView planetView = Object.Instantiate(_planetViewPrefab, planetGameObject.transform);
         PlanetPresenter planetPresenter = new PlanetPresenter(planet, planetView);
@@ -90,7 +83,6 @@ public class PlanetBuilder
     private void Reset()
     {
         _planetModel = null;
-        _shipPrefab = null;
         _position = Vector3.zero;
         _rotation = Quaternion.identity;
         _size = 0;

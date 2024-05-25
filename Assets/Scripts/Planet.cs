@@ -13,8 +13,6 @@ public class Planet : MonoBehaviour
     }
 
     [SerializeField]
-    private Ship _shipPrefab;
-    [SerializeField]
     private Player _owner;
     [SerializeField]
     private int _shipToCaptured;
@@ -29,8 +27,8 @@ public class Planet : MonoBehaviour
 
     private Dictionary<Planet, float> _neighbors = new Dictionary<Planet, float>();
 
-    private int _ownerShipsCountNear;
-    private int _enemyShipsCountNear;
+    private int _ownerShipsNearCount;
+    private int _enemyShipsNearCount;
 
     [SerializeField]
     private float _resourcePerSecond;
@@ -40,7 +38,8 @@ public class Planet : MonoBehaviour
     public int ShipToCaptured => _shipToCaptured;
     public Vector3 Position => transform.position;
     public Player Owner => _owner;
-    public int ShipCount => _ownerShipsCountNear;
+    public int ShipCount => _ownerShipsNearCount;
+    public int MaxShipCount => _maxShipCount;
     public float Radius => _radius;
     public float SearchRadius => _searchRadius;
     public PlanetState State => _state;
@@ -48,7 +47,7 @@ public class Planet : MonoBehaviour
     public int MaxShipToSend => _ownerShips.Count(s => s.IsHolding);
     public IReadOnlyDictionary<Planet, float> Neighbors => _neighbors;
 
-    public void Init(int shipForCaptured, float resourcePerSecond, int maxShip, Ship shipPrefab)
+    public void Init(int shipForCaptured, float resourcePerSecond, int maxShip)
     {
         _shipToCaptured = shipForCaptured;
 
@@ -58,8 +57,6 @@ public class Planet : MonoBehaviour
         _resourcePerSecond = resourcePerSecond;
         _maxShipCount = maxShip;
 
-        _shipPrefab = shipPrefab;
-
         ShipsCountChanged?.Invoke(_shipToCaptured);
         _factory = new ShipFactory(this);
     }
@@ -68,11 +65,11 @@ public class Planet : MonoBehaviour
     {
         if (_state != PlanetState.NotCaptured) 
         {
-            _ownerShipsCountNear = CountNearestShips(_ownerShips);
-            _enemyShipsCountNear = CountNearestShips(_enemyShips);
-            ShipsCountChanged?.Invoke(_ownerShipsCountNear);
+            _ownerShipsNearCount = CountNearestShips(_ownerShips);
+            _enemyShipsNearCount = CountNearestShips(_enemyShips);
+            ShipsCountChanged?.Invoke(_ownerShipsNearCount);
 
-            if (_enemyShipsCountNear > 0)
+            if (_enemyShipsNearCount > 0)
             {
                 _state = PlanetState.UnderSiege;
             }
@@ -87,7 +84,7 @@ public class Planet : MonoBehaviour
 
                 if (_factory.CanCreate && _ownerShips.Count < _maxShipCount)
                 {
-                    Ship ship = _factory.CreateShip(_shipPrefab);
+                    Ship ship = _factory.CreateShip(_owner.ShipPrefab);
                     AddShip(ship);
                 }
 
@@ -137,7 +134,7 @@ public class Planet : MonoBehaviour
             return;
         }
 
-        if (_ownerShipsCountNear <= 0)
+        if (_ownerShipsNearCount <= 0)
         {
             ChangeOwner(ship.Owner);
             ShipsCountChanged?.Invoke(_ownerShips.Count);
@@ -161,6 +158,8 @@ public class Planet : MonoBehaviour
     public void AddNeighbor(Planet neighbor, float distance)
     {
         _neighbors.Add(neighbor, distance);
+
+        _neighbors = _neighbors.OrderBy(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value);
     }
 
     public bool IsNeighbor(Planet planet)
@@ -177,7 +176,7 @@ public class Planet : MonoBehaviour
     {
         if (!_neighbors.ContainsKey(neighbor))
         {
-            throw new ArgumentOutOfRangeException(nameof(neighbor), "There's no such neighbor.");
+            throw new ArgumentOutOfRangeException(nameof(neighbor), "Нет такого соседа");
         }
 
         return _neighbors[neighbor];

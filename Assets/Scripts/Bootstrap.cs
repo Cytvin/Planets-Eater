@@ -3,8 +3,10 @@ using System.Linq;
 using Unity.AI.Navigation;
 using UnityEngine;
 
-public class Main : MonoBehaviour
+public class Bootstrap : MonoBehaviour
 {
+    [SerializeField]
+    private Game _game;
     [SerializeField]
     private MapGeneratorRules _mapGeneratorRules;
     [SerializeField]
@@ -21,7 +23,11 @@ public class Main : MonoBehaviour
     private PlanetSelectorView _planetSelectorView;
     [SerializeField]
     private AI _ai;
-
+    [SerializeField]
+    private Ship _playerShipPrefab;
+    [SerializeField]
+    private Ship _aiShipPrefab;
+    
     private void Awake()
     {
         _mapGeneratorRules.MapHeight = (_mapBoundary.transform.localScale.z / 2) * 10;
@@ -32,9 +38,10 @@ public class Main : MonoBehaviour
 
         _map.BuildNavMesh();
 
-        Player player = new Player(Color.blue);
-        Player ai = new Player(Color.red);
+        Player player = new Player(_playerShipPrefab,Color.blue);
+        Player ai = new Player(_aiShipPrefab, Color.red);
 
+        _planetSelector.Init(player);
         PlayerPresenter playerPresenter = new PlayerPresenter(_playerView, player);
         PlanetSelectorPresenter planetSelectorPresenter = new PlanetSelectorPresenter(_planetSelectorView, _planetSelector);
 
@@ -43,6 +50,8 @@ public class Main : MonoBehaviour
         PlacePlayers(map, player, ai);
         player.AddResource(1000000);
         ai.AddResource(1000000000);
+
+        _game.Init(player, ai, map);
     }
 
     private void PlacePlayers(List<Planet> planets, Player player, Player ai)
