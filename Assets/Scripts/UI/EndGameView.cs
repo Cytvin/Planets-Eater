@@ -29,13 +29,13 @@ public class EndGameView : MonoBehaviour
 
     private void SetVictoryText()
     {
-        _text.SetText("Victory");
+        _text.SetText("Победа");
         _text.color = Color.green;
     }
 
     private void SetDefeatText()
     {
-        _text.SetText("Defeat");
+        _text.SetText("Поражение");
         _text.color = Color.red;
     }
 

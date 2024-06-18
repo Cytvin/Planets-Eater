@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class AI : MonoBehaviour
@@ -25,33 +24,16 @@ public class AI : MonoBehaviour
                 continue;
             }
 
-            if (IsAllNeighborAllies(planet))
+            Planet targetPlanet = SearchNearEnemyPlanet(planet);
+
+            if (targetPlanet == null)
             {
-                Planet targetPlanet = SelectPlanetForReinforcment(planet);
-
-                if (targetPlanet == null)
-                {
-                    continue;
-                }
-
-                if (planet.ShipCount > planet.MaxShipCount * (_percentageShipsToSend / 100f))
-                {
-                    TransferShip(planet, targetPlanet);
-                }
+                continue;
             }
-            else
+
+            if (planet.ShipCount > planet.MaxShipCount * (_percentageShipsToSend / 100f))
             {
-                Planet targetPlanet = SearchNearEnemyPlanet(planet);
-
-                if (targetPlanet == null)
-                {
-                    continue;
-                }
-
-                if (planet.ShipCount > planet.MaxShipCount * (_percentageShipsToSend / 100f))
-                {
-                    TransferShip(planet, targetPlanet);
-                }
+                TransferShip(planet, targetPlanet);
             }
         }
     }
@@ -68,37 +50,6 @@ public class AI : MonoBehaviour
         }
 
         return false;
-    }
-
-    private bool IsAllNeighborAllies(Planet planet)
-    {
-        foreach (Planet neighbor in planet.Neighbors.Keys)
-        {
-            if (neighbor.Owner != _ai)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private Planet SelectPlanetForReinforcment(Planet planet)
-    {
-        KeyValuePair<Planet, float> firstNeighbour = planet.Neighbors.First();
-
-        Planet selectedPlanet = firstNeighbour.Key;
-        float minDistance = firstNeighbour.Value;
-
-        foreach (KeyValuePair<Planet, float> neighbor in planet.Neighbors)
-        {
-            if (neighbor.Key.GetMaxShipToReceiveByPlayer(_ai) > 0 && neighbor.Value < minDistance)
-            {
-                selectedPlanet = neighbor.Key;
-            }
-        }
-
-        return selectedPlanet;
     }
 
     private Planet SearchNearEnemyPlanet(Planet planet)

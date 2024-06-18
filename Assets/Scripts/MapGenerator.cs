@@ -127,7 +127,7 @@ public class MapGenerator
 
         ActivatePlanets();
 
-        MakeNeighbor(_planets);
+        ConnectNeighbor(_planets);
 
         return _planets;
     }
@@ -216,7 +216,7 @@ public class MapGenerator
         return planet;
     }
 
-    private void MakeNeighbor(IEnumerable<Planet> planets)
+    private void ConnectNeighbor(IEnumerable<Planet> planets)
     {
         foreach (Planet planet in planets)
         {
